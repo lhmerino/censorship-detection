@@ -1,4 +1,4 @@
-Main Design Proposal (please feel free to edit this post directly to modify the design and post suggestions/comments/issues in another comment):
+Main Design Proposal:
 
 ## Memory Structure
 ```
