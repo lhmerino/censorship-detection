@@ -1,6 +1,9 @@
 package main
 
 import (
+	"bufio"
+	"bytes"
+	"compress/gzip"
 	"encoding/binary"
 	"encoding/hex"
 	"flag"
@@ -9,8 +12,13 @@ import (
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
 	"github.com/google/gopacket/reassembly"
+	"io"
+	"io/ioutil"
+	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
+	"path"
 	"sync"
 )
 
@@ -25,11 +33,16 @@ var logAllPackets = flag.Bool("v", false, "Logs every packet in great detail")
 // TCP Options
 var allowmissinginit = flag.Bool("allowmissinginit", false, "Support streams without SYN/SYN+ACK/ACK sequence")
 
-// Logging Parameters
-var hexdump = flag.Bool("dump", true, "Dump HTTP request/response as hex")
-var hexdumppkt = flag.Bool("dumppkt", true, "Dump packet as hex")
+// HTTP Options
+var nohttp = flag.Bool("nohttp", false, "Disable HTTP parsing")
+var output = flag.String("output", "files/", "Path to create file for HTTP 200 OK responses")
+var writeincomplete = flag.Bool("writeincomplete", true, "Write incomplete response")
 
-var verbose = flag.Bool("verbose", false, "Be verbose")
+// Logging Parameters
+var hexdump = flag.Bool("dump", false, "Dump HTTP request/response as hex")
+var hexdumppkt = flag.Bool("dumppkt", false, "Dump packet as hex")
+
+var verbose = flag.Bool("verbose", true, "Be verbose")
 var debug = flag.Bool("debug", false, "Display debug information")
 var quiet = flag.Bool("quiet", false, "Be quiet regarding errors")
 
@@ -91,6 +104,197 @@ func setupLogging() {
 	overlapBytes        int
 	overlapPackets      int
 }*/
+
+// ---------------------- TCP Stream ------------------------
+
+type tcpStreamFactory struct {
+	wg     sync.WaitGroup
+	doHTTP bool
+}
+
+func (factory *tcpStreamFactory) New(net, transport gopacket.Flow, tcp *layers.TCP, ac reassembly.AssemblerContext) reassembly.Stream {
+	Debug("* NEW: %s %s\n", net, transport)
+	fsmOptions := reassembly.TCPSimpleFSMOptions{
+		SupportMissingEstablishment: *allowmissinginit,
+	}
+	factory.doHTTP = true
+	stream := &tcpStream{
+		net:        net,
+		transport:  transport,
+		isDNS:      tcp.SrcPort == 53 || tcp.DstPort == 53,
+		isHTTP:     (tcp.SrcPort == 80 || tcp.DstPort == 80) && factory.doHTTP,
+		reversed:   tcp.SrcPort == 80,
+		tcpstate:   reassembly.NewTCPSimpleFSM(fsmOptions),
+		ident:      fmt.Sprintf("%s:%s", net, transport),
+		optchecker: reassembly.NewTCPOptionCheck(),
+	}
+	if stream.isHTTP {
+		stream.client = httpReader{
+			bytes:    make(chan []byte),
+			ident:    fmt.Sprintf("%s %s", net, transport),
+			hexdump:  *hexdump,
+			parent:   stream,
+			isClient: true,
+		}
+		stream.server = httpReader{
+			bytes:   make(chan []byte),
+			ident:   fmt.Sprintf("%s %s", net.Reverse(), transport.Reverse()),
+			hexdump: *hexdump,
+			parent:  stream,
+		}
+		factory.wg.Add(2)
+		go stream.client.run(&factory.wg)
+		go stream.server.run(&factory.wg)
+	}
+	return stream
+}
+
+func (factory *tcpStreamFactory) WaitGoRoutines() {
+	factory.wg.Wait()
+}
+
+// ------------------ END TCP ASSEMBLER ---------------
+// ------------------ HTTP ASSEMBLER ------------------
+type httpReader struct {
+	ident    string
+	isClient bool
+	bytes    chan []byte
+	data     []byte
+	hexdump  bool
+	parent   *tcpStream
+}
+
+func (h *httpReader) Read(p []byte) (int, error) {
+	ok := true
+	for ok && len(h.data) == 0 {
+		h.data, ok = <-h.bytes
+	}
+	if !ok || len(h.data) == 0 {
+		return 0, io.EOF
+	}
+
+	l := copy(p, h.data)
+	h.data = h.data[l:]
+	return l, nil
+}
+
+func (h *httpReader) run(wg *sync.WaitGroup) {
+	defer wg.Done()
+	b := bufio.NewReader(h)
+	for true {
+		if h.isClient {
+			req, err := http.ReadRequest(b)
+			if err == io.EOF || err == io.ErrUnexpectedEOF {
+				break
+			} else if err != nil {
+				Error("HTTP-request", "HTTP/%s Request error: %s (%v,%+v)\n", h.ident, err, err, err)
+				continue
+			}
+			body, err := ioutil.ReadAll(req.Body)
+			s := len(body)
+			if err != nil {
+				Error("HTTP-request-body", "Got body err: %s\n", err)
+			} else if h.hexdump {
+				Info("Body(%d/0x%x)\n%s\n", len(body), len(body), hex.Dump(body))
+			}
+			req.Body.Close()
+			Info("HTTP/%s Request: %s %s (body:%d)\n", h.ident, req.Method, req.URL, s)
+			h.parent.Lock()
+			h.parent.urls = append(h.parent.urls, req.URL.String())
+			h.parent.Unlock()
+		} else {
+			res, err := http.ReadResponse(b, nil)
+			var req string
+			h.parent.Lock()
+			if len(h.parent.urls) == 0 {
+				req = fmt.Sprintf("<no-request-seen>")
+			} else {
+				req, h.parent.urls = h.parent.urls[0], h.parent.urls[1:]
+			}
+			h.parent.Unlock()
+			if err == io.EOF || err == io.ErrUnexpectedEOF {
+				break
+			} else if err != nil {
+				Error("HTTP-response", "HTTP/%s Response error: %s (%v,%+v)\n", h.ident, err, err, err)
+				continue
+			}
+			body, err := ioutil.ReadAll(res.Body)
+			s := len(body)
+			if err != nil {
+				Error("HTTP-response-body", "HTTP/%s: failed to get body(parsed len:%d): %s\n", h.ident, s, err)
+			}
+			if h.hexdump {
+				Info("Body(%d/0x%x)\n%s\n", len(body), len(body), hex.Dump(body))
+			}
+			res.Body.Close()
+			sym := ","
+			if res.ContentLength > 0 && res.ContentLength != int64(s) {
+				sym = "!="
+			}
+			contentType, ok := res.Header["Content-Type"]
+			if !ok {
+				contentType = []string{http.DetectContentType(body)}
+			}
+			encoding := res.Header["Content-Encoding"]
+			Info("HTTP/%s Response: %s URL:%s (%d%s%d%s) -> %s\n", h.ident, res.Status, req, res.ContentLength, sym, s, contentType, encoding)
+			if (err == nil || *writeincomplete) && *output != "" {
+				base := url.QueryEscape(path.Base(req))
+				Info("1")
+				if err != nil {
+					base = "incomplete-" + base
+				}
+				base = path.Join(*output, base)
+				if len(base) > 250 {
+					base = base[:250] + "..."
+				}
+				if base == *output {
+					base = path.Join(*output, "noname")
+				}
+				Info("2")
+				target := base
+				n := 0
+				for true {
+					_, err := os.Stat(target)
+					//if os.IsNotExist(err) != nil {
+					if err != nil {
+						break
+					}
+					target = fmt.Sprintf("%s-%d", base, n)
+					n++
+				}
+				f, err := os.Create(target)
+				Info("3")
+				if err != nil {
+					Error("HTTP-create", "Cannot create %s: %s\n", target, err)
+					continue
+				}
+				Info("4")
+				var r io.Reader
+				r = bytes.NewBuffer(body)
+				if len(encoding) > 0 && (encoding[0] == "gzip" || encoding[0] == "deflate") {
+					r, err = gzip.NewReader(r)
+					if err != nil {
+						Error("HTTP-gunzip", "Failed to gzip decode: %s", err)
+					}
+				}
+				if err == nil {
+					w, err := io.Copy(f, r)
+					if _, ok := r.(*gzip.Reader); ok {
+						r.(*gzip.Reader).Close()
+					}
+					f.Close()
+					if err != nil {
+						Error("HTTP-save", "%s: failed to save %s (l:%d): %s\n", h.ident, target, w, err)
+					} else {
+						Info("%s: Saved %s (l:%d)\n", h.ident, target, w)
+					}
+				}
+			}
+		}
+	}
+}
+
+// ------------------ FLOWS ---------------------------
 
 // ------------------ TCP ASSEMBLER -------------------
 /*
@@ -246,109 +450,7 @@ func (t *tcpStream) ReassemblyComplete(ac reassembly.AssemblerContext) bool {
 	return false
 }
 
-type tcpStreamFactory struct {
-	wg     sync.WaitGroup
-	doHTTP bool
-}
-
-func (factory *tcpStreamFactory) New(net, transport gopacket.Flow, tcp *layers.TCP, ac reassembly.AssemblerContext) reassembly.Stream {
-	Debug("* NEW: %s %s\n", net, transport)
-	fsmOptions := reassembly.TCPSimpleFSMOptions{
-		SupportMissingEstablishment: *allowmissinginit,
-	}
-	stream := &tcpStream{
-		net:        net,
-		transport:  transport,
-		isDNS:      tcp.SrcPort == 53 || tcp.DstPort == 53,
-		isHTTP:     (tcp.SrcPort == 80 || tcp.DstPort == 80) && factory.doHTTP,
-		reversed:   tcp.SrcPort == 80,
-		tcpstate:   reassembly.NewTCPSimpleFSM(fsmOptions),
-		ident:      fmt.Sprintf("%s:%s", net, transport),
-		optchecker: reassembly.NewTCPOptionCheck(),
-	}
-	/*if stream.isHTTP {
-		stream.client = httpReader{
-			bytes:    make(chan []byte),
-			ident:    fmt.Sprintf("%s %s", net, transport),
-			hexdump:  *hexdump,
-			parent:   stream,
-			isClient: true,
-		}
-		stream.server = httpReader{
-			bytes:   make(chan []byte),
-			ident:   fmt.Sprintf("%s %s", net.Reverse(), transport.Reverse()),
-			hexdump: *hexdump,
-			parent:  stream,
-		}
-		factory.wg.Add(2)
-		go stream.client.run(&factory.wg)
-		go stream.server.run(&factory.wg)
-	}*/
-	return stream
-}
-
-func (factory *tcpStreamFactory) WaitGoRoutines() {
-	factory.wg.Wait()
-}
-
-// ------------------ END TCP ASSEMBLER ---------------
-// ------------------ HTTP ASSEMBLER ------------------
-type httpReader struct {
-	ident    string
-	isClient bool
-	bytes    chan []byte
-	data     []byte
-	hexdump  bool
-	parent   *tcpStream
-}
-
-/*type httpStream struct {
-	net, transport gopacket.Flow
-	r              tcpreader.ReaderStream
-}
-
-type httpStreamFactory struct{}
-
-func (h *httpStreamFactory) New(net, transport gopacket.Flow) tcpassembly.Stream {
-	hstream := &httpStream{
-		net:       net,
-		transport: transport,
-		r:         tcpreader.NewReaderStream(),
-	}
-	go hstream.run() // Important... we must guarantee that data from the reader stream is read.
-
-	// ReaderStream implements tcpassembly.Stream, so we can return a pointer to it.
-	return &hstream.r
-}
-
-func (h *httpStream) run() {
-	buf := bufio.NewReader(&h.r)
-	for {
-		req, err := http.ReadRequest(buf)
-		if err == io.EOF {
-			// We must read until we see an EOF... very important!
-			return
-		} else if err != nil {
-			//log.Println("Error reading stream", h.net, h.transport, ":", err)
-		} else {
-			//bodyBytes := tcpreader.DiscardBytesToEOF(req.Body)
-			req.Body.Close()
-			//log.Println("Received request from stream", h.net, h.transport, ":", req, "with", bodyBytes, "bytes in request body")
-		}
-	}
-}*/
-
-// ------------------ FLOWS ---------------------------
-
-type FlowData struct {
-	flow  gopacket.Flow // provided by GoPacket
-	flags uint8         // use one of the 8 flags to mark an occurred event
-}
-
-// Our hashmap
-var flows = make(map[uint64]FlowData)
-
-// ------------------ END FLOWS -----------------------
+// ------------------ END STREAM -----------------------
 
 /*func runLiveCapture(handle *pcap.Handle, assembler tcpassembly.Assembler) {
 	Info("reading in packets")
@@ -434,7 +536,9 @@ func main() {
 		count++
 
 		data := packet.Data()
-		Debug("Packet #%d content (%d/0x%x)\n%s\n", count, len(data), len(data), hex.Dump(data))
+		if *hexdumppkt {
+			Debug("Packet #%d content (%d/0x%x)\n%s\n", count, len(data), len(data), hex.Dump(data))
+		}
 
 		// Ignore IPv4 de-fragmentation for the time being TODO
 
