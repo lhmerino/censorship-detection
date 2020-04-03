@@ -27,11 +27,14 @@ import (
 var pcapFile = flag.String("p", "", "PCAP file")
 var iface = flag.String("i", "en0", "Interface to get packets from")
 var snaplen = flag.Int("s", 1600, "SnapLen for pcap packet capture")
-var filter = flag.String("f", "tcp and port 59168", "BPF filter for pcap")
+var filter = flag.String("f", "tcp and port 9999", "BPF filter for pcap")
 var logAllPackets = flag.Bool("v", false, "Logs every packet in great detail")
 
 // TCP Options
 var allowmissinginit = flag.Bool("allowmissinginit", false, "Support streams without SYN/SYN+ACK/ACK sequence")
+
+//var ignorefsmerr = flag.Bool("ignorefsmerr", false, "Ignore TCP FSM errors") //TCP FSM: Finite State Machine
+//var nooptcheck = flag.Bool("nooptcheck", false, "Do not check TCP options (useful to ignore MSS on captures with TSO)")
 
 // HTTP Options
 var nohttp = flag.Bool("nohttp", false, "Disable HTTP parsing")
@@ -87,7 +90,7 @@ func setupLogging() {
 
 // ------------------ END Logging ---------------------
 // ------------------ STATS ---------------------------
-/*var stats struct {
+var stats struct {
 	ipdefrag            int
 	missedBytes         int
 	pkt                 int
@@ -103,7 +106,7 @@ func setupLogging() {
 	biggestChunkPackets int
 	overlapBytes        int
 	overlapPackets      int
-}*/
+}
 
 // ---------------------- TCP Stream ------------------------
 
@@ -122,7 +125,7 @@ func (factory *tcpStreamFactory) New(net, transport gopacket.Flow, tcp *layers.T
 		net:        net,
 		transport:  transport,
 		isDNS:      tcp.SrcPort == 53 || tcp.DstPort == 53,
-		isHTTP:     (tcp.SrcPort == 80 || tcp.DstPort == 80) && factory.doHTTP,
+		isHTTP:     (tcp.SrcPort == 80 || tcp.DstPort == 9999) && factory.doHTTP,
 		reversed:   tcp.SrcPort == 80,
 		tcpstate:   reassembly.NewTCPSimpleFSM(fsmOptions),
 		ident:      fmt.Sprintf("%s:%s", net, transport),
@@ -136,15 +139,15 @@ func (factory *tcpStreamFactory) New(net, transport gopacket.Flow, tcp *layers.T
 			parent:   stream,
 			isClient: true,
 		}
-		stream.server = httpReader{
+		/*stream.server = httpReader{
 			bytes:   make(chan []byte),
 			ident:   fmt.Sprintf("%s %s", net.Reverse(), transport.Reverse()),
 			hexdump: *hexdump,
 			parent:  stream,
-		}
-		factory.wg.Add(2)
+		}*/
+		factory.wg.Add(1)
 		go stream.client.run(&factory.wg)
-		go stream.server.run(&factory.wg)
+		//go stream.server.run(&factory.wg) <- Server unecessary for now
 	}
 	return stream
 }
@@ -190,19 +193,24 @@ func (h *httpReader) run(wg *sync.WaitGroup) {
 				Error("HTTP-request", "HTTP/%s Request error: %s (%v,%+v)\n", h.ident, err, err, err)
 				continue
 			}
-			body, err := ioutil.ReadAll(req.Body)
+			Info("HTTP/%s Request: %s %s\n", h.ident, req.Method, req.URL)
+			h.parent.Lock()
+			h.parent.urls = append(h.parent.urls, req.URL.String())
+			h.parent.Unlock()
+			req.Body.Close()
+			break
+
+			/* HTTP Request Body if needed */
+			/*body, err := ioutil.ReadAll(req.Body)
 			s := len(body)
 			if err != nil {
 				Error("HTTP-request-body", "Got body err: %s\n", err)
 			} else if h.hexdump {
 				Info("Body(%d/0x%x)\n%s\n", len(body), len(body), hex.Dump(body))
-			}
-			req.Body.Close()
-			Info("HTTP/%s Request: %s %s (body:%d)\n", h.ident, req.Method, req.URL, s)
-			h.parent.Lock()
-			h.parent.urls = append(h.parent.urls, req.URL.String())
-			h.parent.Unlock()
+			}*/
+
 		} else {
+			/* Never run */
 			res, err := http.ReadResponse(b, nil)
 			var req string
 			h.parent.Lock()
@@ -303,28 +311,32 @@ func (h *httpReader) run(wg *sync.WaitGroup) {
 
 /* It's a connection (bidirectional) */
 type tcpStream struct {
+	// TCP State
 	tcpstate       *reassembly.TCPSimpleFSM
 	fsmerr         bool
 	optchecker     reassembly.TCPOptionCheck
 	net, transport gopacket.Flow
-	isDNS          bool
-	isHTTP         bool
-	reversed       bool
-	client         httpReader
-	server         httpReader
-	urls           []string
-	ident          string
+
+	// TCP
+	isDNS    bool
+	isHTTP   bool
+	reversed bool
+	client   httpReader
+	server   httpReader
+	urls     []string
+	ident    string
 	sync.Mutex
 }
 
 func (t *tcpStream) Accept(tcp *layers.TCP, ci gopacket.CaptureInfo, dir reassembly.TCPFlowDirection, nextSeq reassembly.Sequence, start *bool, ac reassembly.AssemblerContext) bool {
 	// FSM
+	// All packets including ones that may be out of state should be logged.
 	if !t.tcpstate.CheckState(tcp, dir) {
 		Error("FSM", "%s: Packet rejected by FSM (state:%s)\n", t.ident, t.tcpstate.String())
-		//stats.rejectFsm++
+		stats.rejectFsm++
 		if !t.fsmerr {
 			t.fsmerr = true
-			//stats.rejectConnFsm++
+			stats.rejectConnFsm++
 		}
 		/*if !*ignorefsmerr {
 			return false
@@ -334,12 +346,15 @@ func (t *tcpStream) Accept(tcp *layers.TCP, ci gopacket.CaptureInfo, dir reassem
 	err := t.optchecker.Accept(tcp, ci, dir, nextSeq, start)
 	if err != nil {
 		Error("OptionChecker", "%s: Packet rejected by OptionChecker: %s\n", t.ident, err)
-		//stats.rejectOpt++
+		stats.rejectOpt++
 		/*if !*nooptcheck {
 			return false
 		}*/
 	}
-	// Checksum
+
+	return true
+
+	// Ignore checksum check
 	accept := true
 	/*if *checksum {
 		c, err := tcp.ComputeChecksum()
@@ -350,10 +365,10 @@ func (t *tcpStream) Accept(tcp *layers.TCP, ci gopacket.CaptureInfo, dir reassem
 			Error("Checksum", "%s: Invalid checksum: 0x%x\n", t.ident, c)
 			accept = false
 		}
-	}*/
+	}
 	if !accept {
 		//stats.rejectOpt++
-	}
+	}*/
 	return accept
 }
 
@@ -434,7 +449,7 @@ func (t *tcpStream) ReassembledSG(sg reassembly.ScatterGather, ac reassembly.Ass
 			if dir == reassembly.TCPDirClientToServer && !t.reversed {
 				t.client.bytes <- data
 			} else {
-				t.server.bytes <- data
+				//t.server.bytes <- data
 			}
 		}
 	}
@@ -444,7 +459,7 @@ func (t *tcpStream) ReassemblyComplete(ac reassembly.AssemblerContext) bool {
 	Debug("%s: Connection closed\n", t.ident)
 	if t.isHTTP {
 		close(t.client.bytes)
-		close(t.server.bytes)
+		//close(t.server.bytes)
 	}
 	// do not remove the connection to allow last ACK
 	return false
@@ -534,6 +549,7 @@ func main() {
 
 	for packet := range packetSource.Packets() {
 		count++
+		Info("%d", count)
 
 		data := packet.Data()
 		if *hexdumppkt {
@@ -554,4 +570,6 @@ func main() {
 		}
 	}
 
+	streamFactory.WaitGoRoutines()
+	Debug("%s\n", assembler.Dump())
 }
