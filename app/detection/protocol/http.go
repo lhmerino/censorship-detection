@@ -1,17 +1,14 @@
 package protocol
 
 import (
+	"breakerspace.cs.umd.edu/censorship/measurement/connection/tcp"
+	"breakerspace.cs.umd.edu/censorship/measurement/utils/logger"
 	"bufio"
-	"bytes"
-	"compress/gzip"
 	"encoding/hex"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
-	"net/url"
-	"os"
-	"path"
 	"sync"
 )
 
@@ -21,7 +18,7 @@ type HttpReader struct {
 	bytes    chan []byte
 	data     []byte
 	hexdump  bool
-	parent   *tcpStream
+	parent   *tcp.Stream
 }
 
 func (h *HttpReader) Read(p []byte) (int, error) {
@@ -47,12 +44,12 @@ func (h *HttpReader) run(wg *sync.WaitGroup) {
 			if err == io.EOF || err == io.ErrUnexpectedEOF {
 				break
 			} else if err != nil {
-				Error("HTTP-request", "HTTP/%s Request error: %s (%v,%+v)\n", h.ident, err, err, err)
+				logger.Error("HTTP-request", "HTTP/%s Request error: %s (%v,%+v)\n", h.ident, err, err, err)
 				continue
 			}
-			Info("HTTP/%s Request: %s %s\n", h.ident, req.Method, req.URL)
+			logger.Info("HTTP/%s Request: %s %s\n", h.ident, req.Method, req.URL)
 			h.parent.Lock()
-			h.parent.urls = append(h.parent.urls, req.URL.String())
+			h.parent.Urls = append(h.parent.Urls, req.URL.String())
 			h.parent.Unlock()
 			req.Body.Close()
 			break
@@ -71,25 +68,25 @@ func (h *HttpReader) run(wg *sync.WaitGroup) {
 			res, err := http.ReadResponse(b, nil)
 			var req string
 			h.parent.Lock()
-			if len(h.parent.urls) == 0 {
+			if len(h.parent.Urls) == 0 {
 				req = fmt.Sprintf("<no-request-seen>")
 			} else {
-				req, h.parent.urls = h.parent.urls[0], h.parent.urls[1:]
+				req, h.parent.Urls = h.parent.Urls[0], h.parent.Urls[1:]
 			}
 			h.parent.Unlock()
 			if err == io.EOF || err == io.ErrUnexpectedEOF {
 				break
 			} else if err != nil {
-				Error("HTTP-response", "HTTP/%s Response error: %s (%v,%+v)\n", h.ident, err, err, err)
+				logger.Error("HTTP-response", "HTTP/%s Response error: %s (%v,%+v)\n", h.ident, err, err, err)
 				continue
 			}
 			body, err := ioutil.ReadAll(res.Body)
 			s := len(body)
 			if err != nil {
-				Error("HTTP-response-body", "HTTP/%s: failed to get body(parsed len:%d): %s\n", h.ident, s, err)
+				logger.Error("HTTP-response-body", "HTTP/%s: failed to get body(parsed len:%d): %s\n", h.ident, s, err)
 			}
 			if h.hexdump {
-				Info("Body(%d/0x%x)\n%s\n", len(body), len(body), hex.Dump(body))
+				logger.Info("Body(%d/0x%x)\n%s\n", len(body), len(body), hex.Dump(body))
 			}
 			res.Body.Close()
 			sym := ","
@@ -101,10 +98,10 @@ func (h *HttpReader) run(wg *sync.WaitGroup) {
 				contentType = []string{http.DetectContentType(body)}
 			}
 			encoding := res.Header["Content-Encoding"]
-			Info("HTTP/%s Response: %s URL:%s (%d%s%d%s) -> %s\n", h.ident, res.Status, req, res.ContentLength, sym, s, contentType, encoding)
-			if (err == nil || *writeincomplete) && *output != "" {
+			logger.Info("HTTP/%s Response: %s URL:%s (%d%s%d%s) -> %s\n", h.ident, res.Status, req, res.ContentLength, sym, s, contentType, encoding)
+			/*if (err == nil || *writeincomplete) && *output != "" {
 				base := url.QueryEscape(path.Base(req))
-				Info("1")
+				logger.Info("1")
 				if err != nil {
 					base = "incomplete-" + base
 				}
@@ -115,7 +112,7 @@ func (h *HttpReader) run(wg *sync.WaitGroup) {
 				if base == *output {
 					base = path.Join(*output, "noname")
 				}
-				Info("2")
+				logger.Info("2")
 				target := base
 				n := 0
 				for true {
@@ -128,12 +125,12 @@ func (h *HttpReader) run(wg *sync.WaitGroup) {
 					n++
 				}
 				f, err := os.Create(target)
-				Info("3")
+				logger.Info("3")
 				if err != nil {
 					Error("HTTP-create", "Cannot create %s: %s\n", target, err)
 					continue
 				}
-				Info("4")
+				logger.Info("4")
 				var r io.Reader
 				r = bytes.NewBuffer(body)
 				if len(encoding) > 0 && (encoding[0] == "gzip" || encoding[0] == "deflate") {
@@ -149,12 +146,12 @@ func (h *HttpReader) run(wg *sync.WaitGroup) {
 					}
 					f.Close()
 					if err != nil {
-						Error("HTTP-save", "%s: failed to save %s (l:%d): %s\n", h.ident, target, w, err)
+						logger.Error("HTTP-save", "%s: failed to save %s (l:%d): %s\n", h.ident, target, w, err)
 					} else {
-						Info("%s: Saved %s (l:%d)\n", h.ident, target, w)
+						logger.Error("%s: Saved %s (l:%d)\n", h.ident, target, w)
 					}
 				}
-			}
+			}*/
 		}
 	}
 }

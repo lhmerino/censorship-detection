@@ -1,6 +1,11 @@
-package connection
+package tcp
+
+/*
+ * TCP stream
+ */
 
 import (
+	"breakerspace.cs.umd.edu/censorship/measurement/utils/logger"
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
@@ -10,38 +15,45 @@ import (
 	"sync"
 )
 
-/*
- * TCP stream
- */
+type Options struct {
+	allowMissingInit *bool
+}
+
+func NewTCPOptions(allowMissingInit *bool) *Options {
+	return &Options{allowMissingInit: allowMissingInit}
+}
 
 /* It's a connection (bidirectional) */
-type tcpStream struct {
+type Stream struct {
 	// TCP State
 	tcpstate       *reassembly.TCPSimpleFSM
 	fsmerr         bool
 	optchecker     reassembly.TCPOptionCheck
 	net, transport gopacket.Flow
 
+	// TCP Options
+	options *Options
+
 	// TCP
 	isDNS    bool
 	isHTTP   bool
 	reversed bool
-	client   httpReader
-	server   httpReader
-	urls     []string
-	ident    string
+	//client   httpReader
+	//server   httpReader
+	Urls  []string
+	ident string
 	sync.Mutex
 }
 
-func (t *tcpStream) Accept(tcp *layers.TCP, ci gopacket.CaptureInfo, dir reassembly.TCPFlowDirection, nextSeq reassembly.Sequence, start *bool, ac reassembly.AssemblerContext) bool {
+func (t *Stream) Accept(tcp *layers.TCP, ci gopacket.CaptureInfo, dir reassembly.TCPFlowDirection, nextSeq reassembly.Sequence, start *bool, ac reassembly.AssemblerContext) bool {
 	// FSM
 	// All packets including ones that may be out of state should be logged.
 	if !t.tcpstate.CheckState(tcp, dir) {
-		Error("FSM", "%s: Packet rejected by FSM (state:%s)\n", t.ident, t.tcpstate.String())
-		stats.rejectFsm++
+		logger.Error("FSM", "%s: Packet rejected by FSM (state:%s)\n", t.ident, t.tcpstate.String())
+		//stats.rejectFsm++
 		if !t.fsmerr {
 			t.fsmerr = true
-			stats.rejectConnFsm++
+			//stats.rejectConnFsm++
 		}
 		/*if !*ignorefsmerr {
 			return false
@@ -50,8 +62,8 @@ func (t *tcpStream) Accept(tcp *layers.TCP, ci gopacket.CaptureInfo, dir reassem
 	// Options
 	err := t.optchecker.Accept(tcp, ci, dir, nextSeq, start)
 	if err != nil {
-		Error("OptionChecker", "%s: Packet rejected by OptionChecker: %s\n", t.ident, err)
-		stats.rejectOpt++
+		logger.Error("OptionChecker", "%s: Packet rejected by OptionChecker: %s\n", t.ident, err)
+		//stats.rejectOpt++
 		/*if !*nooptcheck {
 			return false
 		}*/
@@ -77,7 +89,7 @@ func (t *tcpStream) Accept(tcp *layers.TCP, ci gopacket.CaptureInfo, dir reassem
 	return accept
 }
 
-func (t *tcpStream) ReassembledSG(sg reassembly.ScatterGather, ac reassembly.AssemblerContext) {
+func (t *Stream) ReassembledSG(sg reassembly.ScatterGather, ac reassembly.AssemblerContext) {
 	dir, start, end, skip := sg.Info()
 	length, saved := sg.Lengths()
 	// update stats
@@ -111,8 +123,8 @@ func (t *tcpStream) ReassembledSG(sg reassembly.ScatterGather, ac reassembly.Ass
 	} else {
 		ident = fmt.Sprintf("%v %v(%s): ", t.net.Reverse(), t.transport.Reverse(), dir)
 	}
-	Debug("%s: SG reassembled packet with %d bytes (start:%v,end:%v,skip:%d,saved:%d,nb:%d,%d,overlap:%d,%d)\n", ident, length, start, end, skip, saved, sgStats.Packets, sgStats.Chunks, sgStats.OverlapBytes, sgStats.OverlapPackets)
-	if skip == -1 && *allowmissinginit {
+	logger.Debug("%s: SG reassembled packet with %d bytes (start:%v,end:%v,skip:%d,saved:%d,nb:%d,%d,overlap:%d,%d)\n", ident, length, start, end, skip, saved, sgStats.Packets, sgStats.Chunks, sgStats.OverlapBytes, sgStats.OverlapPackets)
+	if skip == -1 && *t.options.allowMissingInit {
 		// this is allowed
 	} else if skip != 0 {
 		// Missing bytes in stream: do not even try to parse it
@@ -130,29 +142,29 @@ func (t *tcpStream) ReassembledSG(sg reassembly.ScatterGather, ac reassembly.Ass
 		}
 		dnsSize := binary.BigEndian.Uint16(data[:2])
 		missing := int(dnsSize) - len(data[2:])
-		Debug("dnsSize: %d, missing: %d\n", dnsSize, missing)
+		logger.Debug("dnsSize: %d, missing: %d\n", dnsSize, missing)
 		if missing > 0 {
-			Info("Missing some bytes: %d\n", missing)
+			logger.Info("Missing some bytes: %d\n", missing)
 			sg.KeepFrom(0)
 			return
 		}
 		p := gopacket.NewDecodingLayerParser(layers.LayerTypeDNS, dns)
 		err := p.DecodeLayers(data[2:], &decoded)
 		if err != nil {
-			Error("DNS-parser", "Failed to decode DNS: %v\n", err)
+			logger.Error("DNS-parser", "Failed to decode DNS: %v\n", err)
 		} else {
-			Debug("DNS: %s\n", gopacket.LayerDump(dns))
+			logger.Debug("DNS: %s\n", gopacket.LayerDump(dns))
 		}
 		if len(data) > 2+int(dnsSize) {
 			sg.KeepFrom(2 + int(dnsSize))
 		}
 	} else if t.isHTTP {
 		if length > 0 {
-			if *hexdump {
-				Debug("Feeding http with:\n%s", hex.Dump(data))
-			}
+			//if *hexdump {
+			logger.Debug("Feeding http with:\n%s", hex.Dump(data))
+			//}
 			if dir == reassembly.TCPDirClientToServer && !t.reversed {
-				t.client.bytes <- data
+				//t.client.bytes <- data
 			} else {
 				//t.server.bytes <- data
 			}
@@ -160,10 +172,10 @@ func (t *tcpStream) ReassembledSG(sg reassembly.ScatterGather, ac reassembly.Ass
 	}
 }
 
-func (t *tcpStream) ReassemblyComplete(ac reassembly.AssemblerContext) bool {
-	Debug("%s: Connection closed\n", t.ident)
+func (t *Stream) ReassemblyComplete(ac reassembly.AssemblerContext) bool {
+	logger.Debug("%s: Connection closed\n", t.ident)
 	if t.isHTTP {
-		close(t.client.bytes)
+		//close(t.client.bytes)
 		//close(t.server.bytes)
 	}
 	// do not remove the connection to allow last ACK

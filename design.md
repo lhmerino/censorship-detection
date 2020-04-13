@@ -82,3 +82,5 @@ Go documentation:
 
 What is Cloudflare's privacy policy?
 - I am assuming it is in their right to inspect the Network Layer and (potentially) the Transport Layer. However, what about the Application Layer?
+- Allow missing TCP handshake?
+- 

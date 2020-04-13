@@ -1,7 +1,7 @@
-package connection
+package tcp
 
 import (
-	logger "breakerspace.cs.umd.edu/censorship/measurement/utils"
+	"breakerspace.cs.umd.edu/censorship/measurement/utils/logger"
 	"fmt"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
@@ -9,18 +9,27 @@ import (
 	"sync"
 )
 
-type tcpStreamFactory struct {
-	wg     sync.WaitGroup
-	doHTTP bool
+type StreamFactory struct {
+	wg      sync.WaitGroup
+	doHTTP  bool
+	options *Options
 }
 
-func (factory *tcpStreamFactory) New(net, transport gopacket.Flow, tcp *layers.TCP, ac reassembly.AssemblerContext) reassembly.Stream {
-	logger.Debug("* NEW: %s %s\n", net, transport)
+func NewStreamFactory(options *Options) *StreamFactory {
+	return &StreamFactory{options: options}
+}
+
+func (factory *StreamFactory) New(net, transport gopacket.Flow, tcp *layers.TCP, ac reassembly.AssemblerContext) reassembly.Stream {
+	logger.Debug("* NEW Connection: %s %s\n", net, transport)
+
+	// TCP Finite State Machine Options
 	fsmOptions := reassembly.TCPSimpleFSMOptions{
-		SupportMissingEstablishment: *allowmissinginit,
+		// Allow missing TCP handshake?
+		SupportMissingEstablishment: *factory.options.allowMissingInit,
 	}
+
 	factory.doHTTP = true
-	stream := &tcpStream{
+	stream := &Stream{
 		net:        net,
 		transport:  transport,
 		isDNS:      tcp.SrcPort == 53 || tcp.DstPort == 53,
@@ -31,7 +40,7 @@ func (factory *tcpStreamFactory) New(net, transport gopacket.Flow, tcp *layers.T
 		optchecker: reassembly.NewTCPOptionCheck(),
 	}
 	if stream.isHTTP {
-		stream.client = httpReader{
+		/*stream.client = httpReader{
 			bytes:    make(chan []byte),
 			ident:    fmt.Sprintf("%s %s", net, transport),
 			hexdump:  *hexdump,
@@ -43,14 +52,14 @@ func (factory *tcpStreamFactory) New(net, transport gopacket.Flow, tcp *layers.T
 			ident:   fmt.Sprintf("%s %s", net.Reverse(), transport.Reverse()),
 			hexdump: *hexdump,
 			parent:  stream,
-		}*/
+		}
 		factory.wg.Add(1)
-		go stream.client.run(&factory.wg)
+		go stream.client.run(&factory.wg)*/
 		//go stream.server.run(&factory.wg) <- Server unecessary for now
 	}
 	return stream
 }
 
-func (factory *tcpStreamFactory) WaitGoRoutines() {
-	factory.wg.Wait()
+func (factory *StreamFactory) WaitGoRoutines() {
+	/*factory.wg.Wait()*/
 }

@@ -7,3 +7,7 @@ type Interface interface {
 type Censor struct {
 	Interface
 }
+
+func NewCensor() *Censor {
+	return &Censor{}
+}

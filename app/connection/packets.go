@@ -1,7 +1,9 @@
 package connection
 
 import (
-	logger "breakerspace.cs.umd.edu/censorship/measurement/utils"
+	"breakerspace.cs.umd.edu/censorship/measurement/connection/tcp"
+	"breakerspace.cs.umd.edu/censorship/measurement/detection"
+	"breakerspace.cs.umd.edu/censorship/measurement/utils/logger"
 	"encoding/hex"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
@@ -41,7 +43,7 @@ func (c *Context) GetCaptureInfo() gopacket.CaptureInfo {
 	return c.CaptureInfo
 }
 
-func Run(options *Options) {
+func Run(measurement *detection.Measurement, options *Options, tcpOptions *tcp.Options) {
 	var err error
 	var handle *pcap.Handle
 
@@ -66,7 +68,7 @@ func Run(options *Options) {
 	}
 
 	// Set up assembly
-	streamFactory := &tcpStreamFactory{}
+	streamFactory := tcp.NewStreamFactory(tcpOptions)
 	streamPool := reassembly.NewStreamPool(streamFactory)
 	assembler := reassembly.NewAssembler(streamPool)
 
@@ -87,16 +89,16 @@ func Run(options *Options) {
 
 		// Ignore IPv4 de-fragmentation for the time being TODO
 
-		tcp := packet.Layer(layers.LayerTypeTCP)
+		tcpLayer := packet.Layer(layers.LayerTypeTCP)
 
-		if tcp != nil {
+		if tcpLayer != nil {
 			// TCP Layer Detected
-			tcp := tcp.(*layers.TCP)
+			tcpLayer := tcpLayer.(*layers.TCP)
 
 			c := Context{
 				CaptureInfo: packet.Metadata().CaptureInfo,
 			}
-			assembler.AssembleWithContext(packet.NetworkLayer().NetworkFlow(), tcp, &c)
+			assembler.AssembleWithContext(packet.NetworkLayer().NetworkFlow(), tcpLayer, &c)
 		}
 	}
 
