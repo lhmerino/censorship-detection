@@ -1,11 +1,9 @@
 package protocol
 
 import (
-	"breakerspace.cs.umd.edu/censorship/measurement/connection/tcp"
 	"breakerspace.cs.umd.edu/censorship/measurement/utils/logger"
 	"bufio"
 	"encoding/hex"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -13,45 +11,45 @@ import (
 )
 
 type HttpReader struct {
-	ident    string
-	isClient bool
-	bytes    chan []byte
-	data     []byte
-	hexdump  bool
-	parent   *tcp.Stream
+	Ident    string
+	IsClient bool
+	Bytes    chan []byte
+	Data     []byte
+	Hexdump  bool
+	//parent   *tcp.Stream
 }
 
 func (h *HttpReader) Read(p []byte) (int, error) {
 	ok := true
-	for ok && len(h.data) == 0 {
-		h.data, ok = <-h.bytes
+	for ok && len(h.Data) == 0 {
+		h.Data, ok = <-h.Bytes
 	}
-	if !ok || len(h.data) == 0 {
+	if !ok || len(h.Data) == 0 {
 		return 0, io.EOF
 	}
 
-	l := copy(p, h.data)
-	h.data = h.data[l:]
+	l := copy(p, h.Data)
+	h.Data = h.Data[l:]
 	return l, nil
 }
 
-func (h *HttpReader) run(wg *sync.WaitGroup) {
+func (h *HttpReader) Run(wg *sync.WaitGroup) {
 	defer wg.Done()
 	b := bufio.NewReader(h)
 	for true {
-		if h.isClient {
+		if h.IsClient {
 			req, err := http.ReadRequest(b)
 			if err == io.EOF || err == io.ErrUnexpectedEOF {
 				break
 			} else if err != nil {
-				logger.Error("HTTP-request", "HTTP/%s Request error: %s (%v,%+v)\n", h.ident, err, err, err)
+				logger.Error("HTTP-request", "HTTP/%s Request error: %s (%v,%+v)\n", h.Ident, err, err, err)
 				continue
 			}
-			logger.Info("HTTP/%s Request: %s %s\n", h.ident, req.Method, req.URL)
-			h.parent.Lock()
-			h.parent.Urls = append(h.parent.Urls, req.URL.String())
-			h.parent.Unlock()
-			req.Body.Close()
+			logger.Info("HTTP/%s Request: %s %s\n", h.Ident, req.Method, req.URL)
+			//h.parent.Lock()
+			//h.parent.Urls = append(h.parent.Urls, req.URL.String())
+			//h.parent.Unlock()
+			//req.Body.Close()
 			break
 
 			/* HTTP Request Body if needed */
@@ -59,7 +57,7 @@ func (h *HttpReader) run(wg *sync.WaitGroup) {
 			s := len(body)
 			if err != nil {
 				Error("HTTP-request-body", "Got body err: %s\n", err)
-			} else if h.hexdump {
+			} else if h.Hexdump {
 				Info("Body(%d/0x%x)\n%s\n", len(body), len(body), hex.Dump(body))
 			}*/
 
@@ -67,27 +65,27 @@ func (h *HttpReader) run(wg *sync.WaitGroup) {
 			/* Never run */
 			res, err := http.ReadResponse(b, nil)
 			var req string
-			h.parent.Lock()
+			/*h.parent.Lock()
 			if len(h.parent.Urls) == 0 {
 				req = fmt.Sprintf("<no-request-seen>")
 			} else {
 				req, h.parent.Urls = h.parent.Urls[0], h.parent.Urls[1:]
 			}
-			h.parent.Unlock()
+			h.parent.Unlock()*/
 			if err == io.EOF || err == io.ErrUnexpectedEOF {
 				break
 			} else if err != nil {
-				logger.Error("HTTP-response", "HTTP/%s Response error: %s (%v,%+v)\n", h.ident, err, err, err)
+				logger.Error("HTTP-response", "HTTP/%s Response error: %s (%v,%+v)\n", h.Ident, err, err, err)
 				continue
 			}
 			body, err := ioutil.ReadAll(res.Body)
 			s := len(body)
 			if err != nil {
-				logger.Error("HTTP-response-body", "HTTP/%s: failed to get body(parsed len:%d): %s\n", h.ident, s, err)
+				logger.Error("HTTP-response-body", "HTTP/%s: failed to get body(parsed len:%d): %s\n", h.Ident, s, err)
 			}
-			if h.hexdump {
-				logger.Info("Body(%d/0x%x)\n%s\n", len(body), len(body), hex.Dump(body))
-			}
+			//if h.Hexdump {
+			logger.Info("Body(%d/0x%x)\n%s\n", len(body), len(body), hex.Dump(body))
+			//}
 			res.Body.Close()
 			sym := ","
 			if res.ContentLength > 0 && res.ContentLength != int64(s) {
@@ -98,7 +96,7 @@ func (h *HttpReader) run(wg *sync.WaitGroup) {
 				contentType = []string{http.DetectContentType(body)}
 			}
 			encoding := res.Header["Content-Encoding"]
-			logger.Info("HTTP/%s Response: %s URL:%s (%d%s%d%s) -> %s\n", h.ident, res.Status, req, res.ContentLength, sym, s, contentType, encoding)
+			logger.Info("HTTP/%s Response: %s URL:%s (%d%s%d%s) -> %s\n", h.Ident, res.Status, req, res.ContentLength, sym, s, contentType, encoding)
 			/*if (err == nil || *writeincomplete) && *output != "" {
 				base := url.QueryEscape(path.Base(req))
 				logger.Info("1")
@@ -132,7 +130,7 @@ func (h *HttpReader) run(wg *sync.WaitGroup) {
 				}
 				logger.Info("4")
 				var r io.Reader
-				r = bytes.NewBuffer(body)
+				r = Bytes.NewBuffer(body)
 				if len(encoding) > 0 && (encoding[0] == "gzip" || encoding[0] == "deflate") {
 					r, err = gzip.NewReader(r)
 					if err != nil {

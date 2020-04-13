@@ -1,6 +1,7 @@
 package tcp
 
 import (
+	"breakerspace.cs.umd.edu/censorship/measurement/detection/protocol"
 	"breakerspace.cs.umd.edu/censorship/measurement/utils/logger"
 	"fmt"
 	"github.com/google/gopacket"
@@ -33,33 +34,32 @@ func (factory *StreamFactory) New(net, transport gopacket.Flow, tcp *layers.TCP,
 		net:        net,
 		transport:  transport,
 		isDNS:      tcp.SrcPort == 53 || tcp.DstPort == 53,
-		isHTTP:     (tcp.SrcPort == 80 || tcp.DstPort == 9999) && factory.doHTTP,
+		isHTTP:     (tcp.SrcPort == 80 || tcp.DstPort == 80) && factory.doHTTP,
 		reversed:   tcp.SrcPort == 80,
 		tcpstate:   reassembly.NewTCPSimpleFSM(fsmOptions),
 		ident:      fmt.Sprintf("%s:%s", net, transport),
 		optchecker: reassembly.NewTCPOptionCheck(),
 	}
 	if stream.isHTTP {
-		/*stream.client = httpReader{
-			bytes:    make(chan []byte),
-			ident:    fmt.Sprintf("%s %s", net, transport),
-			hexdump:  *hexdump,
-			parent:   stream,
-			isClient: true,
+		stream.client = protocol.HttpReader{
+			Bytes: make(chan []byte),
+			Ident: fmt.Sprintf("%s %s", net, transport),
+			//Hexdump:  *factory.options,
+			IsClient: true,
 		}
 		/*stream.server = httpReader{
 			bytes:   make(chan []byte),
 			ident:   fmt.Sprintf("%s %s", net.Reverse(), transport.Reverse()),
 			hexdump: *hexdump,
 			parent:  stream,
-		}
+		}*/
 		factory.wg.Add(1)
-		go stream.client.run(&factory.wg)*/
+		go stream.client.Run(&factory.wg)
 		//go stream.server.run(&factory.wg) <- Server unecessary for now
 	}
 	return stream
 }
 
 func (factory *StreamFactory) WaitGoRoutines() {
-	/*factory.wg.Wait()*/
+	factory.wg.Wait()
 }

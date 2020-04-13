@@ -25,7 +25,7 @@ var pcapFile = flag.String("p", "", "PCAP file")
 var iface = flag.String("i", "en0", "Interface to get packets from")
 var snaplen = flag.Int("s", 1600, "SnapLen for pcap packet capture")
 var filter = flag.String("f", "tcp and port 59168", "BPF filter for pcap")
-var hexdump = flag.Bool("dump", true, "Dump HTTP request/response as hex")
+var hexdump = flag.Bool("dump", false, "Dump HTTP request/response as hex")
 
 // TCP options
 var allowMissingInit = flag.Bool("allowmissinginit", false,

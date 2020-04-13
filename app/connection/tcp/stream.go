@@ -5,6 +5,7 @@ package tcp
  */
 
 import (
+	"breakerspace.cs.umd.edu/censorship/measurement/detection/protocol"
 	"breakerspace.cs.umd.edu/censorship/measurement/utils/logger"
 	"encoding/binary"
 	"encoding/hex"
@@ -38,7 +39,7 @@ type Stream struct {
 	isDNS    bool
 	isHTTP   bool
 	reversed bool
-	//client   httpReader
+	client   protocol.HttpReader
 	//server   httpReader
 	Urls  []string
 	ident string
@@ -164,7 +165,7 @@ func (t *Stream) ReassembledSG(sg reassembly.ScatterGather, ac reassembly.Assemb
 			logger.Debug("Feeding http with:\n%s", hex.Dump(data))
 			//}
 			if dir == reassembly.TCPDirClientToServer && !t.reversed {
-				//t.client.bytes <- data
+				t.client.Bytes <- data
 			} else {
 				//t.server.bytes <- data
 			}
@@ -175,7 +176,7 @@ func (t *Stream) ReassembledSG(sg reassembly.ScatterGather, ac reassembly.Assemb
 func (t *Stream) ReassemblyComplete(ac reassembly.AssemblerContext) bool {
 	logger.Debug("%s: Connection closed\n", t.ident)
 	if t.isHTTP {
-		//close(t.client.bytes)
+		close(t.client.Bytes)
 		//close(t.server.bytes)
 	}
 	// do not remove the connection to allow last ACK
