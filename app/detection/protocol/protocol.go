@@ -1,16 +1,9 @@
 package protocol
 
-var HTTP uint8 = 1
+type Protocol interface {
+	// Get the name of the protocol
+	GetName() string
 
-type Interface interface {
-	ProcessDetection()
-}
-
-type Protocol struct {
-	Interface
-	kind uint8
-}
-
-func NewProtocol(kind uint8) *Protocol {
-	return &Protocol{kind: kind}
+	// BPF filter for protocol
+	BPFFilter() string
 }

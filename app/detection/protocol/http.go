@@ -3,7 +3,6 @@ package protocol
 import (
 	"breakerspace.cs.umd.edu/censorship/measurement/utils/logger"
 	"bufio"
-	"encoding/hex"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -17,6 +16,22 @@ type HttpReader struct {
 	Data     []byte
 	Hexdump  bool
 	//parent   *tcp.Stream
+}
+
+type HTTP struct {
+	Protocol
+}
+
+func NewHTTP() *HTTP {
+	return &HTTP{}
+}
+
+func (h HTTP) GetName() string {
+	return "HTTP"
+}
+
+func (h HTTP) BPFFilter() string {
+	return "tcp and port 9999"
 }
 
 func (h *HttpReader) Read(p []byte) (int, error) {
@@ -84,7 +99,7 @@ func (h *HttpReader) Run(wg *sync.WaitGroup) {
 				logger.Error("HTTP-response-body", "HTTP/%s: failed to get body(parsed len:%d): %s\n", h.Ident, s, err)
 			}
 			//if h.Hexdump {
-			logger.Info("Body(%d/0x%x)\n%s\n", len(body), len(body), hex.Dump(body))
+			//logger.Info("Body(%d/0x%x)\n%s\n", len(body), len(body), hex.Dump(body))
 			//}
 			res.Body.Close()
 			sym := ","

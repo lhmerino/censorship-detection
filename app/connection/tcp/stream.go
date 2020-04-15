@@ -5,18 +5,20 @@ package tcp
  */
 
 import (
+	"breakerspace.cs.umd.edu/censorship/measurement/detection"
 	"breakerspace.cs.umd.edu/censorship/measurement/detection/protocol"
 	"breakerspace.cs.umd.edu/censorship/measurement/utils/logger"
 	"encoding/binary"
-	"encoding/hex"
 	"fmt"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/reassembly"
+	"io"
 	"sync"
 )
 
 type Options struct {
+	// Create flows without actual TCP handshake
 	allowMissingInit *bool
 }
 
@@ -31,29 +33,27 @@ type Stream struct {
 	fsmerr         bool
 	optchecker     reassembly.TCPOptionCheck
 	net, transport gopacket.Flow
+	ident          string
 
 	// TCP Options
 	options *Options
 
-	// TCP
-	isDNS    bool
-	isHTTP   bool
-	reversed bool
-	client   protocol.HttpReader
-	//server   httpReader
-	Urls  []string
-	ident string
+	// Measurement
+	measurement *detection.Measurement
+
 	sync.Mutex
 }
 
 func (t *Stream) Accept(tcp *layers.TCP, ci gopacket.CaptureInfo, dir reassembly.TCPFlowDirection, nextSeq reassembly.Sequence, start *bool, ac reassembly.AssemblerContext) bool {
 	// FSM
+	logger.Debug("TCP Stream Accept\n")
 	// All packets including ones that may be out of state should be logged.
 	if !t.tcpstate.CheckState(tcp, dir) {
 		logger.Error("FSM", "%s: Packet rejected by FSM (state:%s)\n", t.ident, t.tcpstate.String())
 		//stats.rejectFsm++
 		if !t.fsmerr {
 			t.fsmerr = true
+			close(t.client.Bytes)
 			//stats.rejectConnFsm++
 		}
 		/*if !*ignorefsmerr {
@@ -91,6 +91,8 @@ func (t *Stream) Accept(tcp *layers.TCP, ci gopacket.CaptureInfo, dir reassembly
 }
 
 func (t *Stream) ReassembledSG(sg reassembly.ScatterGather, ac reassembly.AssemblerContext) {
+	logger.Debug("TCP Stream ReassemblySG\n")
+
 	dir, start, end, skip := sg.Info()
 	length, saved := sg.Lengths()
 	// update stats
@@ -162,9 +164,10 @@ func (t *Stream) ReassembledSG(sg reassembly.ScatterGather, ac reassembly.Assemb
 	} else if t.isHTTP {
 		if length > 0 {
 			//if *hexdump {
-			logger.Debug("Feeding http with:\n%s", hex.Dump(data))
+			//logger.Debug("Feeding http with:\n%s", hex.Dump(data))
 			//}
 			if dir == reassembly.TCPDirClientToServer && !t.reversed {
+				logger.Debug("Add Bytes to Client: %d\n", length)
 				t.client.Bytes <- data
 			} else {
 				//t.server.bytes <- data
@@ -174,11 +177,12 @@ func (t *Stream) ReassembledSG(sg reassembly.ScatterGather, ac reassembly.Assemb
 }
 
 func (t *Stream) ReassemblyComplete(ac reassembly.AssemblerContext) bool {
-	logger.Debug("%s: Connection closed\n", t.ident)
+	logger.Debug("%s: TCP Stream Reassembly Complete\n", t.ident)
 	if t.isHTTP {
+		logger.Debug("Hello")
 		close(t.client.Bytes)
 		//close(t.server.bytes)
 	}
 	// do not remove the connection to allow last ACK
-	return false
+	return true
 }

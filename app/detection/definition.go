@@ -7,20 +7,23 @@ import (
 
 //Measurement contains a specific Protocol and a specific Censor
 type Interface interface {
-	protocol.Interface
-	censor.Interface
 	processPacket()
 }
 
 type Measurement struct {
 	//Interface
-	censor   *censor.Censor
-	protocol *protocol.Protocol
-	stats    stats
+	Censor   censor.Censor
+	Protocol protocol.Protocol
+	Stats    stats
+
+	// Protocol Options
+	Port int
 }
 
-func NewMeasurement(censor *censor.Censor, protocol *protocol.Protocol) *Measurement {
-	return &Measurement{censor: censor, protocol: protocol}
+//var Measurements []Measurement
+
+func NewMeasurement(censor censor.Censor, protocol protocol.Protocol) *Measurement {
+	return &Measurement{Censor: censor, Protocol: protocol}
 }
 
 type stats struct {

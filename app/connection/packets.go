@@ -28,7 +28,6 @@ type Options struct {
 	hexdump *bool
 
 	//
-
 }
 
 func NewPacketOptions(pcapFile *string, iface *string, snaplen *int, filter *string, hexdump *bool) *Options {
@@ -46,6 +45,8 @@ func (c *Context) GetCaptureInfo() gopacket.CaptureInfo {
 func Run(measurement *detection.Measurement, options *Options, tcpOptions *tcp.Options) {
 	var err error
 	var handle *pcap.Handle
+
+	logger.Debug(measurement.Censor.GetName())
 
 	if *options.pcapFile != "" {
 		logger.Info("Read from pcap: %q\n", *options.pcapFile)
@@ -68,7 +69,7 @@ func Run(measurement *detection.Measurement, options *Options, tcpOptions *tcp.O
 	}
 
 	// Set up assembly
-	streamFactory := tcp.NewStreamFactory(tcpOptions)
+	streamFactory := tcp.NewStreamFactory(tcpOptions, measurement)
 	streamPool := reassembly.NewStreamPool(streamFactory)
 	assembler := reassembly.NewAssembler(streamPool)
 

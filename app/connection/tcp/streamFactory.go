@@ -1,7 +1,7 @@
 package tcp
 
 import (
-	"breakerspace.cs.umd.edu/censorship/measurement/detection/protocol"
+	"breakerspace.cs.umd.edu/censorship/measurement/detection"
 	"breakerspace.cs.umd.edu/censorship/measurement/utils/logger"
 	"fmt"
 	"github.com/google/gopacket"
@@ -11,17 +11,17 @@ import (
 )
 
 type StreamFactory struct {
-	wg      sync.WaitGroup
-	doHTTP  bool
-	options *Options
+	wg          sync.WaitGroup
+	options     *Options
+	measurement *detection.Measurement
 }
 
-func NewStreamFactory(options *Options) *StreamFactory {
-	return &StreamFactory{options: options}
+func NewStreamFactory(options *Options, measurement *detection.Measurement) *StreamFactory {
+	return &StreamFactory{options: options, measurement: measurement}
 }
 
 func (factory *StreamFactory) New(net, transport gopacket.Flow, tcp *layers.TCP, ac reassembly.AssemblerContext) reassembly.Stream {
-	logger.Debug("* NEW Connection: %s %s\n", net, transport)
+	logger.Info("* NEW Connection: %s %s\n", net, transport)
 
 	// TCP Finite State Machine Options
 	fsmOptions := reassembly.TCPSimpleFSMOptions{
@@ -29,32 +29,30 @@ func (factory *StreamFactory) New(net, transport gopacket.Flow, tcp *layers.TCP,
 		SupportMissingEstablishment: *factory.options.allowMissingInit,
 	}
 
-	factory.doHTTP = true
 	stream := &Stream{
 		net:        net,
 		transport:  transport,
-		isDNS:      tcp.SrcPort == 53 || tcp.DstPort == 53,
-		isHTTP:     (tcp.SrcPort == 80 || tcp.DstPort == 80) && factory.doHTTP,
-		reversed:   tcp.SrcPort == 80,
 		tcpstate:   reassembly.NewTCPSimpleFSM(fsmOptions),
 		ident:      fmt.Sprintf("%s:%s", net, transport),
 		optchecker: reassembly.NewTCPOptionCheck(),
+
+		measurement: factory.measurement,
 	}
-	if stream.isHTTP {
-		stream.client = protocol.HttpReader{
+	if true {
+		/*stream.client = protocol.HttpReader{
 			Bytes: make(chan []byte),
 			Ident: fmt.Sprintf("%s %s", net, transport),
 			//Hexdump:  *factory.options,
 			IsClient: true,
-		}
+		}*/
 		/*stream.server = httpReader{
 			bytes:   make(chan []byte),
 			ident:   fmt.Sprintf("%s %s", net.Reverse(), transport.Reverse()),
 			hexdump: *hexdump,
 			parent:  stream,
 		}*/
-		factory.wg.Add(1)
-		go stream.client.Run(&factory.wg)
+		//factory.wg.Add(1)
+		//go stream.client.Run(&factory.wg)
 		//go stream.server.run(&factory.wg) <- Server unecessary for now
 	}
 	return stream

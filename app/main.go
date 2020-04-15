@@ -24,12 +24,15 @@ var quiet = flag.Bool("quiet", false, "Be quiet regarding errors")
 var pcapFile = flag.String("p", "", "PCAP file")
 var iface = flag.String("i", "en0", "Interface to get packets from")
 var snaplen = flag.Int("s", 1600, "SnapLen for pcap packet capture")
-var filter = flag.String("f", "tcp and port 59168", "BPF filter for pcap")
+var filter = flag.String("f", "", "BPF filter for pcap") // and port 59168
 var hexdump = flag.Bool("dump", false, "Dump HTTP request/response as hex")
 
 // TCP options
 var allowMissingInit = flag.Bool("allowmissinginit", false,
 	"Support streams without SYN/SYN+ACK/ACK sequence")
+
+// HTTP Options
+var httpPort = flag.Int("http_port", 80, "HTTP Server port")
 
 func main() {
 	flag.Parse()
@@ -39,12 +42,17 @@ func main() {
 
 	//measurements = make([]Measurement, 1)
 
-	protocolVar := protocol.NewProtocol(protocol.HTTP)
-	censorVar := censor.NewCensor()
-
+	// Measurement creation
+	protocolVar := protocol.NewHTTP()
+	censorVar := censor.NewChina()
 	measurementVar := detection.NewMeasurement(censorVar, protocolVar)
 
-	packetOptions := connection.NewPacketOptions(pcapFile, iface, snaplen, filter, hexdump)
+	BPFFilter := *filter
+	if BPFFilter == "" {
+		BPFFilter = measurementVar.Protocol.BPFFilter()
+	}
+
+	packetOptions := connection.NewPacketOptions(pcapFile, iface, snaplen, &BPFFilter, hexdump)
 	tcpOptions := tcp.NewTCPOptions(allowMissingInit)
 
 	connection.Run(measurementVar, packetOptions, tcpOptions)
