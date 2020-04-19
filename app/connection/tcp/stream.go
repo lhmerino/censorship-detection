@@ -6,14 +6,11 @@ package tcp
 
 import (
 	"breakerspace.cs.umd.edu/censorship/measurement/detection"
-	"breakerspace.cs.umd.edu/censorship/measurement/detection/protocol"
 	"breakerspace.cs.umd.edu/censorship/measurement/utils/logger"
-	"encoding/binary"
 	"fmt"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/reassembly"
-	"io"
 	"sync"
 )
 
@@ -38,22 +35,29 @@ type Stream struct {
 	// TCP Options
 	options *Options
 
-	// Measurement
-	measurement *detection.Measurement
+	// Applicable Measurements
+	measurements []*detection.Measurement
 
 	sync.Mutex
 }
 
-func (t *Stream) Accept(tcp *layers.TCP, ci gopacket.CaptureInfo, dir reassembly.TCPFlowDirection, nextSeq reassembly.Sequence, start *bool, ac reassembly.AssemblerContext) bool {
-	// FSM
-	logger.Debug("TCP Stream Accept\n")
+// Each packet in the TCP stream passes through here to determine if it should be considered for reassembly
+func (t *Stream) Accept(tcp *layers.TCP, ci gopacket.CaptureInfo, dir reassembly.TCPFlowDirection,
+	nextSeq reassembly.Sequence, start *bool, ac reassembly.AssemblerContext) bool {
+	logger.Info("%v %v(%s): Accept | S:%t, A:%t, P:%t, R:%t F:%t\n", t.net, t.transport, dir, tcp.SYN, tcp.ACK,
+		tcp.PSH, tcp.RST, tcp.FIN)
+
+	for i := 0; i < len(t.measurements); i++ {
+		(*t.measurements[i].Censor).ProcessPacket(&t.ident, tcp, ci, dir)
+	}
+
 	// All packets including ones that may be out of state should be logged.
 	if !t.tcpstate.CheckState(tcp, dir) {
 		logger.Error("FSM", "%s: Packet rejected by FSM (state:%s)\n", t.ident, t.tcpstate.String())
 		//stats.rejectFsm++
 		if !t.fsmerr {
 			t.fsmerr = true
-			close(t.client.Bytes)
+			//close(t.client.Bytes)
 			//stats.rejectConnFsm++
 		}
 		/*if !*ignorefsmerr {
@@ -91,7 +95,6 @@ func (t *Stream) Accept(tcp *layers.TCP, ci gopacket.CaptureInfo, dir reassembly
 }
 
 func (t *Stream) ReassembledSG(sg reassembly.ScatterGather, ac reassembly.AssemblerContext) {
-	logger.Debug("TCP Stream ReassemblySG\n")
 
 	dir, start, end, skip := sg.Info()
 	length, saved := sg.Lengths()
@@ -133,7 +136,7 @@ func (t *Stream) ReassembledSG(sg reassembly.ScatterGather, ac reassembly.Assemb
 		// Missing bytes in stream: do not even try to parse it
 		return
 	}
-	data := sg.Fetch(length)
+	/*data := sg.Fetch(length)
 	if t.isDNS {
 		dns := &layers.DNS{}
 		var decoded []gopacket.LayerType
@@ -173,16 +176,16 @@ func (t *Stream) ReassembledSG(sg reassembly.ScatterGather, ac reassembly.Assemb
 				//t.server.bytes <- data
 			}
 		}
-	}
+	}*/
 }
 
 func (t *Stream) ReassemblyComplete(ac reassembly.AssemblerContext) bool {
 	logger.Debug("%s: TCP Stream Reassembly Complete\n", t.ident)
-	if t.isHTTP {
+	/*if t.isHTTP {
 		logger.Debug("Hello")
 		close(t.client.Bytes)
 		//close(t.server.bytes)
-	}
-	// do not remove the connection to allow last ACK
+	}*/
+	// do not remove the connection to see further along the connection
 	return true
 }

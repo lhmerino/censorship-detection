@@ -2,7 +2,6 @@ package connection
 
 import (
 	"breakerspace.cs.umd.edu/censorship/measurement/connection/tcp"
-	"breakerspace.cs.umd.edu/censorship/measurement/detection"
 	"breakerspace.cs.umd.edu/censorship/measurement/utils/logger"
 	"encoding/hex"
 	"github.com/google/gopacket"
@@ -42,11 +41,9 @@ func (c *Context) GetCaptureInfo() gopacket.CaptureInfo {
 	return c.CaptureInfo
 }
 
-func Run(measurement *detection.Measurement, options *Options, tcpOptions *tcp.Options) {
+func Run(options *Options, tcpOptions *tcp.Options) {
 	var err error
 	var handle *pcap.Handle
-
-	logger.Debug(measurement.Censor.GetName())
 
 	if *options.pcapFile != "" {
 		logger.Info("Read from pcap: %q\n", *options.pcapFile)
@@ -69,7 +66,7 @@ func Run(measurement *detection.Measurement, options *Options, tcpOptions *tcp.O
 	}
 
 	// Set up assembly
-	streamFactory := tcp.NewStreamFactory(tcpOptions, measurement)
+	streamFactory := tcp.NewStreamFactory(tcpOptions)
 	streamPool := reassembly.NewStreamPool(streamFactory)
 	assembler := reassembly.NewAssembler(streamPool)
 
@@ -89,7 +86,6 @@ func Run(measurement *detection.Measurement, options *Options, tcpOptions *tcp.O
 		}
 
 		// Ignore IPv4 de-fragmentation for the time being TODO
-
 		tcpLayer := packet.Layer(layers.LayerTypeTCP)
 
 		if tcpLayer != nil {

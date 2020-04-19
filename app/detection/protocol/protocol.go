@@ -1,9 +1,14 @@
 package protocol
 
+import (
+	"breakerspace.cs.umd.edu/censorship/measurement/detection/shared"
+)
+
 type Protocol interface {
-	// Get the name of the protocol
-	GetName() string
+	shared.SharedInterface
 
 	// BPF filter for protocol
-	BPFFilter() string
+	GetBPFFilter() string
+
+	GetPort() uint16
 }

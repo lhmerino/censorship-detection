@@ -3,6 +3,8 @@ package protocol
 import (
 	"breakerspace.cs.umd.edu/censorship/measurement/utils/logger"
 	"bufio"
+	"fmt"
+	"github.com/google/gopacket"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -20,18 +22,31 @@ type HttpReader struct {
 
 type HTTP struct {
 	Protocol
+
+	port uint16
 }
 
-func NewHTTP() *HTTP {
-	return &HTTP{}
+func NewHTTP(port uint16) *HTTP {
+	return &HTTP{port: port}
 }
 
 func (h HTTP) GetName() string {
 	return "HTTP"
 }
 
-func (h HTTP) BPFFilter() string {
-	return "tcp and port 9999"
+func (h HTTP) GetBPFFilter() string {
+	return fmt.Sprintf("tcp and port %d", h.port)
+}
+
+func (h HTTP) RelevantNewConnection(net gopacket.Flow, transport gopacket.Flow) bool {
+	if transport.Dst().String() == fmt.Sprintf("%d", h.port) {
+		return true
+	}
+	return false
+}
+
+func (h HTTP) GetBasicInfo() string {
+	return fmt.Sprintf("Protocol HTTP on port %d", h.port)
 }
 
 func (h *HttpReader) Read(p []byte) (int, error) {

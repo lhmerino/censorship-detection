@@ -11,17 +11,19 @@ import (
 )
 
 type StreamFactory struct {
-	wg          sync.WaitGroup
-	options     *Options
-	measurement *detection.Measurement
+	wg      sync.WaitGroup
+	options *Options
 }
 
-func NewStreamFactory(options *Options, measurement *detection.Measurement) *StreamFactory {
-	return &StreamFactory{options: options, measurement: measurement}
+func NewStreamFactory(options *Options) *StreamFactory {
+	return &StreamFactory{options: options}
 }
 
 func (factory *StreamFactory) New(net, transport gopacket.Flow, tcp *layers.TCP, ac reassembly.AssemblerContext) reassembly.Stream {
-	logger.Info("* NEW Connection: %s %s\n", net, transport)
+	logger.Info("** NEW Connection: %s %s\n", net, transport)
+
+	applicableMeasurements := detection.RelevantNewConnection(detection.Measurements, net, transport)
+	logger.Debug(detection.GetBasicInfo(applicableMeasurements))
 
 	// TCP Finite State Machine Options
 	fsmOptions := reassembly.TCPSimpleFSMOptions{
@@ -36,25 +38,33 @@ func (factory *StreamFactory) New(net, transport gopacket.Flow, tcp *layers.TCP,
 		ident:      fmt.Sprintf("%s:%s", net, transport),
 		optchecker: reassembly.NewTCPOptionCheck(),
 
-		measurement: factory.measurement,
+		measurements: applicableMeasurements,
 	}
-	if true {
-		/*stream.client = protocol.HttpReader{
-			Bytes: make(chan []byte),
-			Ident: fmt.Sprintf("%s %s", net, transport),
-			//Hexdump:  *factory.options,
-			IsClient: true,
-		}*/
-		/*stream.server = httpReader{
-			bytes:   make(chan []byte),
-			ident:   fmt.Sprintf("%s %s", net.Reverse(), transport.Reverse()),
-			hexdump: *hexdump,
-			parent:  stream,
-		}*/
-		//factory.wg.Add(1)
-		//go stream.client.Run(&factory.wg)
-		//go stream.server.run(&factory.wg) <- Server unecessary for now
+
+	// Create state for each relevant measurement
+	for i := 0; i < len(applicableMeasurements); i++ {
+		//ident := make([]byte, len(stream.ident))
+
+		(*applicableMeasurements[i].Censor).NewStream(&stream.ident)
 	}
+
+	//if true {
+	/*stream.client = protocol.HttpReader{
+		Bytes: make(chan []byte),
+		Ident: fmt.Sprintf("%s %s", net, transport),
+		//Hexdump:  *factory.options,
+		IsClient: true,
+	}*/
+	/*stream.server = httpReader{
+		bytes:   make(chan []byte),
+		ident:   fmt.Sprintf("%s %s", net.Reverse(), transport.Reverse()),
+		hexdump: *hexdump,
+		parent:  stream,
+	}*/
+	//factory.wg.Add(1)
+	//go stream.client.Run(&factory.wg)
+	//go stream.server.run(&factory.wg) <- Server unecessary for now
+	//}
 	return stream
 }
 

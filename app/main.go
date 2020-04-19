@@ -40,20 +40,28 @@ func main() {
 	logger.SetupLogging(debug, verbose, quiet)
 	logger.Debug("Logger started up...\n")
 
-	//measurements = make([]Measurement, 1)
-
-	// Measurement creation
-	protocolVar := protocol.NewHTTP()
-	censorVar := censor.NewChina()
-	measurementVar := detection.NewMeasurement(censorVar, protocolVar)
+	createMeasurements()
 
 	BPFFilter := *filter
 	if BPFFilter == "" {
-		BPFFilter = measurementVar.Protocol.BPFFilter()
+		BPFFilter = detection.GetBPFFilters(detection.Measurements)
 	}
+
+	logger.Info("BPF Filter: %s\n", BPFFilter)
 
 	packetOptions := connection.NewPacketOptions(pcapFile, iface, snaplen, &BPFFilter, hexdump)
 	tcpOptions := tcp.NewTCPOptions(allowMissingInit)
 
-	connection.Run(measurementVar, packetOptions, tcpOptions)
+	connection.Run(packetOptions, tcpOptions)
+}
+
+func createMeasurements() {
+	detection.Measurements = make([]*detection.Measurement, 2)
+
+	protocolVar9999 := protocol.NewHTTP(9999)
+	censorVar := censor.NewChina()
+	detection.Measurements[0] = detection.NewMeasurement(censorVar, protocolVar9999)
+
+	protocolVar8888 := protocol.NewHTTP(8888)
+	detection.Measurements[1] = detection.NewMeasurement(censorVar, protocolVar8888)
 }
