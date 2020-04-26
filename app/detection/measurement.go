@@ -73,8 +73,13 @@ func RelevantNewConnection(measurements []*Measurement,
 
 func GetBasicInfo(measurements []*Measurement) string {
 	basicInfo := ""
-	for i := 0; i < len(measurements); i++ {
-		basicInfo += (*measurements[i].Protocol).GetBasicInfo() + "\n"
+	measurementsLength := len(measurements)
+	for i := 0; i < measurementsLength; i++ {
+		if i != measurementsLength-1 {
+			basicInfo += (*measurements[i].Protocol).GetBasicInfo() + " & "
+		} else {
+			basicInfo += (*measurements[i].Protocol).GetBasicInfo()
+		}
 	}
 	return basicInfo
 }

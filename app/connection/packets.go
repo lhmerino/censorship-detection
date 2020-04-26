@@ -3,13 +3,13 @@ package connection
 import (
 	"breakerspace.cs.umd.edu/censorship/measurement/connection/tcp"
 	"breakerspace.cs.umd.edu/censorship/measurement/utils/logger"
-	"encoding/hex"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
 	"github.com/google/gopacket/reassembly"
 	"os"
 	"os/signal"
+	"time"
 )
 
 type Options struct {
@@ -26,11 +26,13 @@ type Options struct {
 	// Hex Dump Packet (up to snaplen)
 	hexdump *bool
 
-	//
+	// Flush/Close streams every X packets
+	flush *uint64
 }
 
-func NewPacketOptions(pcapFile *string, iface *string, snaplen *int, filter *string, hexdump *bool) *Options {
-	return &Options{pcapFile: pcapFile, iface: iface, snaplen: snaplen, filter: filter, hexdump: hexdump}
+func FlowProcessingOptions(pcapFile *string, iface *string, snaplen *int, filter *string, hexdump *bool,
+	flush *uint64) *Options {
+	return &Options{pcapFile: pcapFile, iface: iface, snaplen: snaplen, filter: filter, hexdump: hexdump, flush: flush}
 }
 
 type Context struct {
@@ -46,15 +48,15 @@ func Run(options *Options, tcpOptions *tcp.Options) {
 	var handle *pcap.Handle
 
 	if *options.pcapFile != "" {
-		logger.Info("Read from pcap: %q\n", *options.pcapFile)
+		logger.Logger.Info("Read from pcap: %q", *options.pcapFile)
 		handle, err = pcap.OpenOffline(*options.pcapFile)
 	} else {
-		logger.Info("Starting capture on interface %q\n", *options.iface)
+		logger.Logger.Info("Starting capture on interface %q", *options.iface)
 		handle, err = pcap.OpenLive(*options.iface, int32(*options.snaplen), true, pcap.BlockForever)
 	}
 
 	if err != nil {
-		logger.Error("Capture Handle", "Handle open failure: %s (%v,%+v)", err, err, err)
+		logger.Logger.Error("Handle open failure: %s (%v,%+v)", err, err, err)
 		return
 	}
 
@@ -62,43 +64,73 @@ func Run(options *Options, tcpOptions *tcp.Options) {
 
 	// Filter packets given filter argument
 	if err := handle.SetBPFFilter(*options.filter); err != nil {
-		logger.Error("%s", err.Error())
+		logger.Logger.Error("%s", err.Error())
 	}
 
-	// Set up assembly
+	// Set up assembler
 	streamFactory := tcp.NewStreamFactory(tcpOptions)
 	streamPool := reassembly.NewStreamPool(streamFactory)
 	assembler := reassembly.NewAssembler(streamPool)
 
-	packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
-
+	// Interrupt setup
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, os.Interrupt)
 
-	count := 0
+	// Packet source setup
+	packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
+	packets := packetSource.Packets()
 
-	for packet := range packetSource.Packets() {
-		count++
+	var count uint64 = 0
+	done := 0
 
-		data := packet.Data()
-		if *options.hexdump {
-			logger.Debug("Packet #%d content (%d/0x%x)\n%s\n", count, len(data), len(data), hex.Dump(data))
-		}
+	for {
+		select {
+		case <-signalChan:
+			logger.Logger.Info("SIGINT: abort")
+			done = 1
+			break
+		case packet := <-packets:
+			// A nil packet indicates the end of a pcap file.
+			if packet == nil {
+				logger.Logger.Debug("End of PCAP")
+				done = 1
+				break
+			}
 
-		// Ignore IPv4 de-fragmentation for the time being TODO
-		tcpLayer := packet.Layer(layers.LayerTypeTCP)
+			// Add count
+			count += 1
 
-		if tcpLayer != nil {
-			// TCP Layer Detected
-			tcpLayer := tcpLayer.(*layers.TCP)
+			tcpLayer := packet.Layer(layers.LayerTypeTCP)
+			if tcpLayer == nil {
+				// If TCP layer does not exist
+				logger.Logger.Debug("Unusable packet")
+				continue
+			}
 
 			c := Context{
 				CaptureInfo: packet.Metadata().CaptureInfo,
 			}
-			assembler.AssembleWithContext(packet.NetworkLayer().NetworkFlow(), tcpLayer, &c)
+			assembler.AssembleWithContext(packet.NetworkLayer().NetworkFlow(), tcpLayer.(*layers.TCP), &c)
+
+			// Time to flush or close connections
+			if count%*options.flush == 0 {
+				// Time reference to use when flushing or closing connections
+				ref := packet.Metadata().CaptureInfo.Timestamp
+				flushed, closed := assembler.FlushCloseOlderThan(ref.Add(time.Second * -2))
+				logger.Logger.Info("Forced flush: %d flushed, %d closed", flushed, closed)
+			}
+		}
+		if done == 1 {
+			break
 		}
 	}
 
-	streamFactory.WaitGoRoutines()
-	logger.Debug("%s\n", assembler.Dump())
+	closed := assembler.FlushAll()
+	logger.Logger.Info("Final flush: %d closed", closed)
+	streamPool.Dump()
+	logger.Logger.Debug("%s", assembler.Dump())
+
+	// TODO: Memory Profile
+
+	// TODO: Stats
 }

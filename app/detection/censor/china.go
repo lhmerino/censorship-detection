@@ -2,6 +2,8 @@ package censor
 
 import (
 	"breakerspace.cs.umd.edu/censorship/measurement/detection/fingerprint"
+	"breakerspace.cs.umd.edu/censorship/measurement/utils/logger"
+	"bytes"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/reassembly"
@@ -13,6 +15,7 @@ type China struct {
 	Censor
 
 	streams map[string]*fingerprint.RSTACKs
+	content map[string]bytes.Buffer
 }
 
 func NewChina() *China {
@@ -34,4 +37,11 @@ func (c *China) NewStream(ident *string) {
 func (c *China) ProcessPacket(ident *string, tcp *layers.TCP, ci gopacket.CaptureInfo,
 	dir reassembly.TCPFlowDirection) {
 	c.streams[*ident].ProcessPacket(tcp, ci, dir)
+
+}
+
+func (c *China) DetectCensorship(ident *string, net *gopacket.Flow, transport *gopacket.Flow, content *bytes.Buffer) {
+	if c.streams[*ident].CensorshipTriggered() {
+		logger.Logger.Connection(net, transport, content)
+	}
 }
