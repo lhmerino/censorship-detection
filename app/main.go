@@ -145,12 +145,12 @@ func setupProfile(filepath *string, fd *int) *os.File {
 }
 
 func createMeasurements() {
-	detection.Measurements = make([]*detection.Measurement, 2)
+	detection.Measurements = make([]*detection.Measurement, 1)
 
 	protocolVar9999 := protocol.NewHTTPCustom(uint16(*httpPort))
 	censorVar := censor.NewChina()
 	detection.Measurements[0] = detection.NewMeasurement(censorVar, protocolVar9999)
 
-	protocolVar8888 := protocol.NewHTTPCustom(8888)
-	detection.Measurements[1] = detection.NewMeasurement(censorVar, protocolVar8888)
+	//protocolVar8888 := protocol.NewHTTPCustom(8888)
+	//detection.Measurements[1] = detection.NewMeasurement(censorVar, protocolVar8888)
 }
