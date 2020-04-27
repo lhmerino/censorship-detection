@@ -24,7 +24,7 @@ func (t *Stream) Accept(tcp *layers.TCP, ci gopacket.CaptureInfo, dir reassembly
 		dirString = fmt.Sprintf("%v %v(%s)", t.net.Reverse(), t.transport.Reverse(), dir)
 	}
 
-	logger.Logger.Info("%s: Accept | S:%t, A:%t, P:%t, R:%t F:%t", dirString, tcp.SYN, tcp.ACK, tcp.PSH, tcp.RST,
+	logger.Logger.Debug("%s: Accept | S:%t, A:%t, P:%t, R:%t F:%t", dirString, tcp.SYN, tcp.ACK, tcp.PSH, tcp.RST,
 		tcp.FIN)
 
 	// Censorship Measurement: Process Packet
@@ -71,7 +71,7 @@ func (t *Stream) ReassembledSG(sg reassembly.ScatterGather, ac reassembly.Assemb
 }
 
 func (t *Stream) ReassemblyComplete(ac reassembly.AssemblerContext) bool {
-	logger.Logger.Info("%s %s: TCP Stream Reassembly Complete", t.net, t.transport)
+	logger.Logger.Debug("%s %s: TCP Stream Reassembly Complete", t.net, t.transport)
 
 	// Detect if censorship occurred in this stream
 	for i := 0; i < len(t.measurements); i++ {

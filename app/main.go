@@ -22,9 +22,9 @@ import (
 
 // Logging Parameters
 var verbose = flag.Bool("verbose", false, "Display info level information")
-var debug = flag.Bool("debug", true, "Display debug level information")
+var debug = flag.Bool("debug", false, "Display debug level information")
 var quiet = flag.Bool("quiet", false, "Be quiet regarding errors")
-var logFile = flag.String("log_file", "/tmp/file.txt", "Log to File")
+var logFile = flag.String("log_file", "", "Log to File")
 var logFD = flag.Int("log_fd", -1, "Log to file descriptor")
 
 // Packet Parameters

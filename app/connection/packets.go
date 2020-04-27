@@ -124,7 +124,7 @@ func Run(options *Options, tcpOptions *tcp.Options) {
 				// Time reference to use when flushing or closing connections
 				ref := packet.Metadata().CaptureInfo.Timestamp
 				flushed, closed := assembler.FlushCloseOlderThan(ref.Add(time.Minute * -2))
-				logger.Logger.Info("Forced flush: %d flushed, %d closed", flushed, closed)
+				logger.Logger.Debug("Forced flush: %d flushed, %d closed", flushed, closed)
 				//PrintMemUsage()
 			}
 		}
