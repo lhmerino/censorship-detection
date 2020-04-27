@@ -11,10 +11,10 @@ import (
 type Censor interface {
 	shared.SharedInterface
 
-	NewStream(ident *string)
+	NewStream() interface{}
 
-	ProcessPacket(ident *string, tcp *layers.TCP, ci gopacket.CaptureInfo,
+	ProcessPacket(someInterface interface{}, tcp *layers.TCP, ci gopacket.CaptureInfo,
 		dir reassembly.TCPFlowDirection)
 
-	DetectCensorship(ident *string, net *gopacket.Flow, transport *gopacket.Flow, content *bytes.Buffer)
+	DetectCensorship(someInterface interface{}, net *gopacket.Flow, transport *gopacket.Flow, content *bytes.Buffer)
 }

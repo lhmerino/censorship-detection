@@ -9,16 +9,23 @@ import (
 	"breakerspace.cs.umd.edu/censorship/measurement/utils/logger"
 	"flag"
 	"fmt"
+	"log"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
+	"runtime"
+	"runtime/pprof"
 	"syscall"
 )
 
 // Parameters
 
 // Logging Parameters
-var verbose = flag.Bool("verbose", true, "Be verbose")
-var debug = flag.Bool("debug", false, "Display debug information")
+var verbose = flag.Bool("verbose", false, "Display info level information")
+var debug = flag.Bool("debug", true, "Display debug level information")
 var quiet = flag.Bool("quiet", false, "Be quiet regarding errors")
+var logFile = flag.String("log_file", "/tmp/file.txt", "Log to File")
+var logFD = flag.Int("log_fd", -1, "Log to file descriptor")
 
 // Packet Parameters
 var pcapFile = flag.String("p", "", "PCAP file")
@@ -35,12 +42,23 @@ var allowMissingInit = flag.Bool("allowmissinginit", false,
 // HTTP Options
 var httpPort = flag.Int("http_port", 80, "HTTP Server port")
 
+// Usage Profiles
+var cpuProfile = flag.String("cpuprofile", "", "write cpu profile to `file` (priority over fd)")
+var cpuProfileFd = flag.Int("cpuprofilefd", -1, "write cpu profile to `file descriptor`")
+var memProfile = flag.String("memprofile", "", "write memory profile to `file` (priority over fd)")
+var memProfileFd = flag.Int("memprofilefd", -1, "write memory profile to `file descriptor`")
+
+var httpProfile = flag.Bool("http_profile", false, "HTTP Usage Profile")
+
 func main() {
 	// Parse arguments
 	flag.Parse()
 
 	// Setup logging
 	setupLogging()
+
+	cpuFile := setupProfile(cpuProfile, cpuProfileFd)
+	memFile := setupProfile(memProfile, memProfileFd)
 
 	// Setup Measurements
 	createMeasurements()
@@ -59,27 +77,80 @@ func main() {
 	// Specify TCP specific options
 	tcpOptions := tcp.NewTCPOptions(allowMissingInit)
 
+	// Turn on CPU profiling
+	if cpuFile != nil {
+		runtime.SetCPUProfileRate(500)
+		if err := pprof.StartCPUProfile(cpuFile); err != nil {
+			logger.Logger.Error("Could not start CPU profile: ", err)
+			os.Exit(-2)
+		}
+	}
+
+	if *httpProfile {
+		go func() {
+			log.Println(http.ListenAndServe("localhost:6060", nil))
+		}()
+	}
+
 	// Configured main options, now run the application!
 	connection.Run(packetOptions, tcpOptions)
+
+	// Write CPU profile
+	if cpuFile != nil {
+		pprof.StopCPUProfile()
+		cpuFile.Close()
+	}
+
+	// Write memory profile
+	if memFile != nil {
+		runtime.GC() // get up-to-date statistics
+		if err := pprof.WriteHeapProfile(memFile); err != nil {
+			log.Fatal("could not write memory profile: ", err)
+		}
+		memFile.Close()
+	}
 }
 
 func setupLogging() {
-	fd, err := syscall.Open("/tmp/file.txt", syscall.O_WRONLY, 644)
-	if err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "Descriptor: %d, %s\n", fd, err)
+	if *logFD == -1 && *logFile != "" {
+		fd2, err := syscall.Open(*logFile, syscall.O_WRONLY, 644)
+		if err != nil {
+			_, _ = fmt.Fprintf(os.Stderr, "Failed to setup logging: %d, %s\n", fd2, err)
+			os.Exit(-2)
+		}
+		*logFD = fd2
 	}
 
-	logger.Logger = logger.NewPrint(fd, debug, verbose, quiet)
+	logger.Logger = logger.NewJSON(*logFD, debug, verbose, quiet)
 	logger.Logger.Debug("Logger started up...")
 }
 
-func createMeasurements() {
-	detection.Measurements = make([]*detection.Measurement, 1)
+func setupProfile(filepath *string, fd *int) *os.File {
+	if *filepath != "" {
+		// Profile to `file` (priority)
+		file, err := os.Create(*filepath)
+		if err != nil {
+			_, _ = fmt.Fprintf(os.Stderr, "Failed to setup CPU profile (file): %s, %s\n", *filepath, err)
+			os.Exit(-2)
+		}
+		return file
+	} else if *fd != -1 {
+		// Profile to file descriptor
+		file := os.NewFile(uintptr(*fd), "Custom")
+		return file
+	}
 
-	protocolVar9999 := protocol.NewHTTP()
+	// No Profile
+	return nil
+}
+
+func createMeasurements() {
+	detection.Measurements = make([]*detection.Measurement, 2)
+
+	protocolVar9999 := protocol.NewHTTPCustom(uint16(*httpPort))
 	censorVar := censor.NewChina()
 	detection.Measurements[0] = detection.NewMeasurement(censorVar, protocolVar9999)
 
-	//protocolVar8888 := protocol.NewHTTPCustom(8888)
-	//detection.Measurements[1] = detection.NewMeasurement(censorVar, protocolVar8888)
+	protocolVar8888 := protocol.NewHTTPCustom(8888)
+	detection.Measurements[1] = detection.NewMeasurement(censorVar, protocolVar8888)
 }

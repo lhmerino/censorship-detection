@@ -13,13 +13,10 @@ import (
 // PUSH | 1st RSTACK | 2nd RSTACK | 3rd RSTACK | 4th RST | 5th RST
 type China struct {
 	Censor
-
-	streams map[string]*fingerprint.RSTACKs
-	content map[string]bytes.Buffer
 }
 
 func NewChina() *China {
-	return &China{streams: make(map[string]*fingerprint.RSTACKs)}
+	return &China{}
 }
 
 func (c *China) GetName() string {
@@ -30,18 +27,19 @@ func (c *China) RelevantNewConnection(net gopacket.Flow, transport gopacket.Flow
 	return true
 }
 
-func (c *China) NewStream(ident *string) {
-	c.streams[*ident] = fingerprint.NewRSTACKs()
+func (c *China) NewStream() interface{} {
+	return fingerprint.NewRSTACKs()
 }
 
-func (c *China) ProcessPacket(ident *string, tcp *layers.TCP, ci gopacket.CaptureInfo,
+func (c *China) ProcessPacket(someInterface interface{}, tcp *layers.TCP, ci gopacket.CaptureInfo,
 	dir reassembly.TCPFlowDirection) {
-	c.streams[*ident].ProcessPacket(tcp, ci, dir)
-
+	rstACKs := someInterface.(*fingerprint.RSTACKs)
+	rstACKs.ProcessPacket(tcp, ci, dir)
 }
 
-func (c *China) DetectCensorship(ident *string, net *gopacket.Flow, transport *gopacket.Flow, content *bytes.Buffer) {
-	if c.streams[*ident].CensorshipTriggered() {
+func (c *China) DetectCensorship(someInterface interface{}, net *gopacket.Flow, transport *gopacket.Flow, content *bytes.Buffer) {
+	rstACKs := someInterface.(*fingerprint.RSTACKs)
+	if rstACKs.CensorshipTriggered() {
 		logger.Logger.Connection(net, transport, content)
 	}
 }

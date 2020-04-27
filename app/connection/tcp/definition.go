@@ -23,7 +23,8 @@ type Stream struct {
 	options *Options
 
 	// Applicable Measurements
-	measurements []*detection.Measurement
+	measurements       []*detection.Measurement
+	measurementStorage map[int]interface{}
 
 	// Contains the first X bytes of the TCP payload (reassembled)
 	contents bytes.Buffer

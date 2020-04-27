@@ -21,7 +21,7 @@ func (factory *StreamFactory) New(net, transport gopacket.Flow, tcp *layers.TCP,
 	logger.Logger.Info("** NEW Connection: %s %s", net, transport)
 
 	applicableMeasurements := detection.RelevantNewConnection(detection.Measurements, net, transport)
-	logger.Logger.Debug("%s %s: %s", net, transport, detection.GetBasicInfo(applicableMeasurements))
+	logger.Logger.Debug("%s %s: Relevant Measurements: %s", net, transport, detection.GetBasicInfo(applicableMeasurements))
 
 	// TCP Finite State Machine Options
 	fsmOptions := reassembly.TCPSimpleFSMOptions{
@@ -41,9 +41,9 @@ func (factory *StreamFactory) New(net, transport gopacket.Flow, tcp *layers.TCP,
 	}
 
 	// Create state for each relevant measurement
-	for i := 0; i < len(applicableMeasurements); i++ {
-		//ident := make([]byte, len(stream.ident))
-		(*applicableMeasurements[i].Censor).NewStream(&stream.ident)
+	stream.measurementStorage = make(map[int]interface{})
+	for i := 0; i < len(stream.measurements); i++ {
+		stream.measurementStorage[i] = (*applicableMeasurements[i].Censor).NewStream()
 	}
 
 	return stream

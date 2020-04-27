@@ -78,8 +78,8 @@ func (J JSON) Error(s string, a ...interface{}) {
 
 func (J JSON) Connection(net *gopacket.Flow, transport *gopacket.Flow, content *bytes.Buffer) {
 	log, _ := json.Marshal(&logStruct{
-		Level:   1,
-		Message: "Connection",
+		Level:   0,
+		Message: fmt.Sprintf("%s %s: Censorship Detected\n%s", net, transport, content.Bytes()),
 	})
 	_, _ = fmt.Fprintln(J.file, string(log))
 }

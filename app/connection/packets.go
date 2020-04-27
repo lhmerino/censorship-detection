@@ -116,7 +116,7 @@ func Run(options *Options, tcpOptions *tcp.Options) {
 			if count%*options.flush == 0 {
 				// Time reference to use when flushing or closing connections
 				ref := packet.Metadata().CaptureInfo.Timestamp
-				flushed, closed := assembler.FlushCloseOlderThan(ref.Add(time.Second * -2))
+				flushed, closed := assembler.FlushCloseOlderThan(ref.Add(time.Minute * -2))
 				logger.Logger.Info("Forced flush: %d flushed, %d closed", flushed, closed)
 			}
 		}
@@ -127,10 +127,7 @@ func Run(options *Options, tcpOptions *tcp.Options) {
 
 	closed := assembler.FlushAll()
 	logger.Logger.Info("Final flush: %d closed", closed)
-	streamPool.Dump()
 	logger.Logger.Debug("%s", assembler.Dump())
-
-	// TODO: Memory Profile
 
 	// TODO: Stats
 }
