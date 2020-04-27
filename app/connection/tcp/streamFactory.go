@@ -3,7 +3,6 @@ package tcp
 import (
 	"breakerspace.cs.umd.edu/censorship/measurement/detection"
 	"breakerspace.cs.umd.edu/censorship/measurement/utils/logger"
-	"fmt"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/reassembly"
@@ -24,18 +23,15 @@ func (factory *StreamFactory) New(net, transport gopacket.Flow, tcp *layers.TCP,
 	logger.Logger.Debug("%s %s: Relevant Measurements: %s", net, transport, detection.GetBasicInfo(applicableMeasurements))
 
 	// TCP Finite State Machine Options
-	fsmOptions := reassembly.TCPSimpleFSMOptions{
+	/*fsmOptions := reassembly.TCPSimpleFSMOptions{
 		// Allow missing TCP handshake?
 		SupportMissingEstablishment: *factory.options.allowMissingInit,
-	}
+	}*/
 
 	// Create Stream
 	stream := &Stream{
-		net:        net,
-		transport:  transport,
-		tcpstate:   reassembly.NewTCPSimpleFSM(fsmOptions),
-		ident:      fmt.Sprintf("%s:%s", net, transport),
-		optchecker: reassembly.NewTCPOptionCheck(),
+		net:       net,
+		transport: transport,
 
 		measurements: applicableMeasurements,
 	}

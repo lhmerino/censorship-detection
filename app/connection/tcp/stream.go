@@ -71,7 +71,7 @@ func (t *Stream) ReassembledSG(sg reassembly.ScatterGather, ac reassembly.Assemb
 }
 
 func (t *Stream) ReassemblyComplete(ac reassembly.AssemblerContext) bool {
-	logger.Logger.Info("%s: TCP Stream Reassembly Complete", t.ident)
+	logger.Logger.Info("%s %s: TCP Stream Reassembly Complete", t.net, t.transport)
 
 	// Detect if censorship occurred in this stream
 	for i := 0; i < len(t.measurements); i++ {

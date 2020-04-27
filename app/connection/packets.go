@@ -2,14 +2,21 @@ package connection
 
 import (
 	"breakerspace.cs.umd.edu/censorship/measurement/connection/tcp"
+	"breakerspace.cs.umd.edu/censorship/measurement/detection"
+	"breakerspace.cs.umd.edu/censorship/measurement/detection/censor"
+	"breakerspace.cs.umd.edu/censorship/measurement/detection/fingerprint"
+	"breakerspace.cs.umd.edu/censorship/measurement/detection/protocol"
 	"breakerspace.cs.umd.edu/censorship/measurement/utils/logger"
+	"fmt"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
 	"github.com/google/gopacket/reassembly"
 	"os"
 	"os/signal"
+	"runtime"
 	"time"
+	"unsafe"
 )
 
 type Options struct {
@@ -118,6 +125,7 @@ func Run(options *Options, tcpOptions *tcp.Options) {
 				ref := packet.Metadata().CaptureInfo.Timestamp
 				flushed, closed := assembler.FlushCloseOlderThan(ref.Add(time.Minute * -2))
 				logger.Logger.Info("Forced flush: %d flushed, %d closed", flushed, closed)
+				//PrintMemUsage()
 			}
 		}
 		if done == 1 {
@@ -128,6 +136,29 @@ func Run(options *Options, tcpOptions *tcp.Options) {
 	closed := assembler.FlushAll()
 	logger.Logger.Info("Final flush: %d closed", closed)
 	logger.Logger.Debug("%s", assembler.Dump())
+}
 
-	// TODO: Stats
+func PrintMemUsage() {
+
+	fmt.Println("sizeof(stream)", unsafe.Sizeof(tcp.Stream{}))
+	fmt.Println("sizeof(RSTACKs)", unsafe.Sizeof(fingerprint.RSTACKs{}))
+	fmt.Println("sizeof(Measurement)", unsafe.Sizeof(detection.Measurement{}))
+	fmt.Println("sizeof(China)", unsafe.Sizeof(censor.China{}))
+	fmt.Println("sizeof(HTTP)", unsafe.Sizeof(protocol.HTTP{}))
+
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+	// For info on each, see: https://golang.org/pkg/runtime/#MemStats
+	fmt.Printf("Alloc = %v MiB", bToMb(m.Alloc))
+	fmt.Printf("\tHeapAlloc = %v MiB", bToMb(m.HeapAlloc))
+	fmt.Printf("\tHeapObjects = %v MiB", bToMb(m.HeapObjects))
+	fmt.Printf("\tTotalAlloc = %v MiB", bToMb(m.TotalAlloc))
+	fmt.Printf("\tSys = %v MiB", bToMb(m.Sys))
+	fmt.Printf("\tNumGC = %v", m.NumGC)
+	fmt.Printf("\tMallocs = %v", m.Mallocs)
+	fmt.Printf("\tFrees = %v\n", m.Frees)
+}
+
+func bToMb(b uint64) uint64 {
+	return b / 1024 / 1024
 }
