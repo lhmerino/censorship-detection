@@ -2,9 +2,7 @@ package fingerprint
 
 import (
 	"breakerspace.cs.umd.edu/censorship/measurement/utils/bits"
-	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
-	"github.com/google/gopacket/reassembly"
 )
 
 type RSTACKs struct {
@@ -16,8 +14,7 @@ func NewRSTACKs() *RSTACKs {
 	return &RSTACKs{Flags: 0}
 }
 
-func (r *RSTACKs) ProcessPacket(tcp *layers.TCP, ci gopacket.CaptureInfo,
-	dir reassembly.TCPFlowDirection) {
+func (r *RSTACKs) ProcessPacket(tcp *layers.TCP) {
 	r.flagsUpdate(tcp)
 }
 

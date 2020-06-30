@@ -1,6 +1,7 @@
 package detection
 
 import (
+	"breakerspace.cs.umd.edu/censorship/measurement/config"
 	"breakerspace.cs.umd.edu/censorship/measurement/detection/censor"
 	"breakerspace.cs.umd.edu/censorship/measurement/detection/protocol"
 	"github.com/google/gopacket"
@@ -36,9 +37,26 @@ type stats struct {
 	overlapPackets      int
 }
 
+
 func NewMeasurement(censor censor.Censor, protocol protocol.Protocol) *Measurement {
 	return &Measurement{Censor: &censor, Protocol: &protocol}
 }
+
+/**
+	Needs to be made dynamic
+ */
+func SetupMeasurements(cfg *config.Config) {
+
+	Measurements = make([]*Measurement, 1)
+
+	protocolVar9999 := protocol.NewHTTPCustom(uint16(cfg.Protocol.HTTP.Port))
+	censorVar := censor.NewChina()
+	Measurements[0] = NewMeasurement(censorVar, protocolVar9999)
+
+	//protocolVar8888 := protocol.NewHTTPCustom(8888)
+	//detection.Measurements[1] = detection.NewMeasurement(censorVar, protocolVar8888)
+}
+
 
 func GetBPFFilters(measurements []*Measurement) string {
 	filter := ""

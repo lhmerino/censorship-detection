@@ -6,7 +6,6 @@ import (
 	"bytes"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
-	"github.com/google/gopacket/reassembly"
 )
 
 // China Fingerprint 1: 3 RSTACKs + 1 RST
@@ -31,10 +30,9 @@ func (c *China) NewStream() interface{} {
 	return fingerprint.NewRSTACKs()
 }
 
-func (c *China) ProcessPacket(someInterface interface{}, tcp *layers.TCP, ci gopacket.CaptureInfo,
-	dir reassembly.TCPFlowDirection) {
+func (c *China) ProcessPacket(someInterface interface{}, tcp *layers.TCP) {
 	rstACKs := someInterface.(*fingerprint.RSTACKs)
-	rstACKs.ProcessPacket(tcp, ci, dir)
+	rstACKs.ProcessPacket(tcp)
 }
 
 func (c *China) DetectCensorship(someInterface interface{}, net *gopacket.Flow, transport *gopacket.Flow, content *bytes.Buffer) {

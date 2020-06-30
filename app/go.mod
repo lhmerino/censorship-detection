@@ -4,5 +4,5 @@ go 1.13
 
 require (
 	github.com/google/gopacket v1.1.17
-	github.com/pkg/profile v1.4.0
+	gopkg.in/yaml.v2 v2.3.0
 )

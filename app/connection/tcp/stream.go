@@ -29,7 +29,7 @@ func (t *Stream) Accept(tcp *layers.TCP, ci gopacket.CaptureInfo, dir reassembly
 
 	// Censorship Measurement: Process Packet
 	for i := 0; i < len(t.measurements); i++ {
-		(*t.measurements[i].Censor).ProcessPacket(t.measurementStorage[i], tcp, ci, dir)
+		(*t.measurements[i].Censor).ProcessPacket(t.measurementStorage[i], tcp)
 	}
 
 	return true
