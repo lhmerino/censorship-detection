@@ -1,12 +1,12 @@
 package logger
 
 import (
+	"breakerspace.cs.umd.edu/censorship/measurement/config"
 	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/google/gopacket"
 	"os"
-	"syscall"
 )
 
 type JSON struct {
@@ -14,23 +14,10 @@ type JSON struct {
 	file        *os.File
 }
 
-func NewJSON(fd int, debug *bool, verbose *bool, quiet *bool) *JSON {
+func NewJSON(cfg *config.Config) *JSON {
 	J := &JSON{}
 
-	if fd != -1 {
-		J.file = os.NewFile(uintptr(fd), "Custom")
-	} else {
-		J.file = os.NewFile(uintptr(syscall.Stdout), "/dev/stdout")
-	}
-
-	J.outputLevel = 1
-	if *debug {
-		J.outputLevel = 3
-	} else if *verbose {
-		J.outputLevel = 2
-	} else if *quiet {
-		J.outputLevel = 0
-	}
+	J.file, J.outputLevel = commonSetup(cfg)
 
 	return J
 }

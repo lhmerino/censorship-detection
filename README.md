@@ -1,3 +1,19 @@
-# censorship detection
+# Censorship Detection
 
-A small Go script that detects the server-side fingerprint of nation-state censorship.
+## App
+
+Bulk of the application that monitors live traffic and detects censorship flows
+
+### Configuration:
+- app/config/config.yml
+
+### Run
+
+Demo run (pcap) of a censored flow
+
+```shell script
+cd censorship-detection/app
+go build -o ../build/measurement .
+cd ..
+./build/measurement -config_file app/config/config.yml
+```
