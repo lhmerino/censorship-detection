@@ -17,3 +17,11 @@ go build -o ../build/measurement .
 cd ..
 ./build/measurement -config_file app/config/config.yml
 ```
+
+### Tests
+
+```shell script
+cd censorship-detection/app/tests
+go test
+```
+
