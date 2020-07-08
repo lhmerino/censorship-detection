@@ -11,15 +11,8 @@ import (
 // Config Parameters
 var configFile = flag.String("config_file", "app/config/config.yml", "Config file location")
 
-// TODO: Override some convenient configuration options (pcap vs. interface)
-
-// Usage Profiles - TODO
-var cpuProfile = flag.String("cpuprofile", "", "write cpu profile to `file` (priority over fd)")
-var cpuProfileFd = flag.Int("cpuprofilefd", -1, "write cpu profile to `file descriptor`")
-var memProfile = flag.String("memprofile", "", "write memory profile to `file` (priority over fd)")
-var memProfileFd = flag.Int("memprofilefd", -1, "write memory profile to `file descriptor`")
-
-var httpProfile = flag.Bool("http_profile", false, "HTTP Usage Profile")
+var pcapFile = flag.String("p", "", "PCAP file")
+var iface = flag.String("i", "", "Interface to get packets from")
 
 func main() {
 	// Parse arguments
@@ -27,9 +20,24 @@ func main() {
 
 	// Config file
 	cfg := config.ReadConfig(*configFile)
-	packetOptions, tcpOptions := setup.StartConfiguration(&cfg)
 
+	// Override common arguments
+	overrideArgs(&cfg)
+
+	// Configure Application
+	packetOptions, tcpOptions, cpuFile, memFile := setup.StartConfiguration(&cfg)
+
+	// Run program
 	connection.Run(packetOptions, tcpOptions)
 
-	setup.EndConfiguration(&cfg)
+	// Cleanup program
+	setup.EndConfiguration(cpuFile, memFile)
+}
+
+func overrideArgs(cfg *config.Config) {
+	if *pcapFile != "" {
+		cfg.Packet.Input.PcapFile = *pcapFile
+	} else if *iface != "" {
+		cfg.Packet.Input.Interface = *iface
+	}
 }

@@ -29,10 +29,27 @@ protocol: # Protocol Specific Options
   http:
     port: 9999
 
+measurements:
+  - censor: China
+    protocol: HTTP
+    port: 9999
+  - censor: China
+    protocol: HTTP
+    port: 8888
+  - censor: China
+    protocol: HTTP
+    port: 7777
+
 profile: # Performance Testing
   cpu:
     enabled: false
+    file: "cpu"
+    fd:
   memory:
+    enabled: false
+    file: "mem"
+    fd:
+  httpServer:
     enabled: false
 
 
