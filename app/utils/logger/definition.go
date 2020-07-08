@@ -49,7 +49,6 @@ func SetupLogging(cfg *config.Config) {
 		os.Exit(4)
 	}
 
-
 	Logger.Info("Logger started up...")
 }
 
