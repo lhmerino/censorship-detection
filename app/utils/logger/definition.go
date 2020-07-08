@@ -54,7 +54,6 @@ func SetupLogging(cfg *config.Config) {
 }
 
 func commonSetup(cfg *config.Config) (*os.File, uint8){
-
 	var file *os.File
 	if cfg.Logging.Output.Fd != -1 {
 		file = os.NewFile(uintptr(cfg.Logging.Output.Fd), "Custom")
