@@ -14,5 +14,5 @@ type Censor interface {
 
 	ProcessPacket(someInterface interface{}, tcp *layers.TCP)
 
-	DetectCensorship(someInterface interface{}, net *gopacket.Flow, transport *gopacket.Flow, content *bytes.Buffer)
+	DetectCensorship(someInterface interface{}, net *gopacket.Flow, transport *gopacket.Flow, content *bytes.Buffer) bool
 }

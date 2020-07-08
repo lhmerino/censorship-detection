@@ -7,7 +7,8 @@ import (
 	"github.com/google/gopacket"
 )
 
-//Measurement contains a specific Protocol and a specific Censor
+//Measurement :
+//	Composed of a specific Protocol and a specific Censor
 type Measurement struct {
 	//Interface
 	Censor   *censor.Censor
@@ -16,6 +17,7 @@ type Measurement struct {
 	// Protocol Options
 	Port int
 }
+
 
 var Measurements []*Measurement
 
@@ -42,21 +44,18 @@ func NewMeasurement(censor censor.Censor, protocol protocol.Protocol) *Measureme
 	return &Measurement{Censor: &censor, Protocol: &protocol}
 }
 
-/**
-	Needs to be made dynamic
- */
+// SetupMeasurements :
+//	Dynamic Measurement Setup based on YAML config file
 func SetupMeasurements(cfg *config.Config) {
+	Measurements = make([]*Measurement, len(cfg.MeasurementConfigs))
 
-	Measurements = make([]*Measurement, 1)
+	for i, measurement := range cfg.MeasurementConfigs {
+		protocolVar := config.ReadProtocolFromMeasurementConfig(&measurement)
+		censorVar := config.ReadCensorFromMeasurementConfig(&measurement)
 
-	protocolVar9999 := protocol.NewHTTPCustom(uint16(cfg.Protocol.HTTP.Port))
-	censorVar := censor.NewChina()
-	Measurements[0] = NewMeasurement(censorVar, protocolVar9999)
-
-	//protocolVar8888 := protocol.NewHTTPCustom(8888)
-	//detection.Measurements[1] = detection.NewMeasurement(censorVar, protocolVar8888)
+		Measurements[i] = NewMeasurement(censorVar, protocolVar)
+	}
 }
-
 
 func GetBPFFilters(measurements []*Measurement) string {
 	filter := ""
@@ -94,8 +93,10 @@ func GetBasicInfo(measurements []*Measurement) string {
 	measurementsLength := len(measurements)
 	for i := 0; i < measurementsLength; i++ {
 		if i != measurementsLength-1 {
+			basicInfo += (*measurements[i].Censor).GetBasicInfo() + "/"
 			basicInfo += (*measurements[i].Protocol).GetBasicInfo() + " & "
 		} else {
+			basicInfo += (*measurements[i].Censor).GetBasicInfo() + "/"
 			basicInfo += (*measurements[i].Protocol).GetBasicInfo()
 		}
 	}
