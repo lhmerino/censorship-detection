@@ -59,5 +59,4 @@ func TestRelevantNewConnection(t *testing.T) {
 	output := detection.GetBasicInfo(measurements)
 
 	t.Log(output)
-
 }
