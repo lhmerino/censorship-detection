@@ -49,12 +49,10 @@ func SetupLogging(cfg *config.Config) {
 		os.Exit(4)
 	}
 
-
 	Logger.Info("Logger started up...")
 }
 
 func commonSetup(cfg *config.Config) (*os.File, uint8){
-
 	var file *os.File
 	if cfg.Logging.Output.Fd != -1 {
 		file = os.NewFile(uintptr(cfg.Logging.Output.Fd), "Custom")

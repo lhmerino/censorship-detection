@@ -48,7 +48,6 @@ func NewMeasurement(censor censor.Censor, protocol protocol.Protocol) *Measureme
 //	Dynamic Measurement Setup based on YAML config file
 func SetupMeasurements(cfg *config.Config) {
 	Measurements = make([]*Measurement, len(cfg.MeasurementConfigs))
-
 	for i, measurement := range cfg.MeasurementConfigs {
 		protocolVar := config.ReadProtocolFromMeasurementConfig(&measurement)
 		censorVar := config.ReadCensorFromMeasurementConfig(&measurement)
