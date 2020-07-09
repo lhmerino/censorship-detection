@@ -21,11 +21,11 @@ func TestRun(t *testing.T) {
 	}
 	logFile.Close()
 
-	packetOptions, tcpOptions := setup.StartConfiguration(&cfg)
+	packetOptions, tcpOptions, cpuFile, memFile := setup.StartConfiguration(&cfg)
 
 	connection.Run(packetOptions, tcpOptions)
 
-	setup.EndConfiguration(&cfg)
+	setup.EndConfiguration(cpuFile, memFile)
 
 	contents, err := ioutil.ReadFile(cfg.Logging.Output.File)
 	if err != nil {

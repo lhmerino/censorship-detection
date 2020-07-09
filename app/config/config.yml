@@ -26,8 +26,6 @@ packet:
 protocol: # Protocol Specific Options
   tcp:
     allowmissinginit: true # Support streams without SYN/SYN+ACK/ACK sequence
-  http:
-    port: 9999
 
 measurements:
   - censor: China
@@ -35,7 +33,7 @@ measurements:
     port: 9999
   - censor: China
     protocol: HTTP
-    port: 8888
+    port: 80
   - censor: China
     protocol: HTTP
     port: 7777

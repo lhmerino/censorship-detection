@@ -3,6 +3,7 @@ package tests
 import (
 	"breakerspace.cs.umd.edu/censorship/measurement/detection/fingerprint"
 	"github.com/google/gopacket/layers"
+	"github.com/google/gopacket/reassembly"
 	"testing"
 )
 
@@ -12,7 +13,8 @@ func TestRSTACKs(t *testing.T) {
 	tcp := &layers.TCP{
 		SYN: true,
 	}
-	RstAck.ProcessPacket(tcp)
+	dir := reassembly.TCPDirClientToServer
+	RstAck.ProcessPacket(tcp, &dir)
 	if RstAck.Flags != 0 || RstAck.CensorshipTriggered() != false {
 		t.Errorf("[RSTACKs] Flag, expected 0, got %d or Censorship Triggered, expected false got %t",
 			 RstAck.Flags, RstAck.CensorshipTriggered())
@@ -22,7 +24,8 @@ func TestRSTACKs(t *testing.T) {
 		SYN: true,
 		ACK: true,
 	}
-	RstAck.ProcessPacket(tcp)
+	dir = reassembly.TCPDirServerToClient
+	RstAck.ProcessPacket(tcp, &dir)
 	if RstAck.Flags != 0 || RstAck.CensorshipTriggered() != false {
 		t.Errorf("[RSTACKs] Flag, expected 0, got %d or Censorship Triggered, expected false got %t",
 			RstAck.Flags, RstAck.CensorshipTriggered())
@@ -31,7 +34,8 @@ func TestRSTACKs(t *testing.T) {
 	tcp = &layers.TCP{
 		ACK: true,
 	}
-	RstAck.ProcessPacket(tcp)
+	dir = reassembly.TCPDirClientToServer
+	RstAck.ProcessPacket(tcp, &dir)
 	if RstAck.Flags != 0 || RstAck.CensorshipTriggered() != false {
 		t.Errorf("[RSTACKs] Flag, expected 0, got %d or Censorship Triggered, expected false got %t",
 			RstAck.Flags, RstAck.CensorshipTriggered())
@@ -41,7 +45,8 @@ func TestRSTACKs(t *testing.T) {
 	tcp = &layers.TCP{
 		PSH: true,
 	}
-	RstAck.ProcessPacket(tcp)
+	dir = reassembly.TCPDirClientToServer
+	RstAck.ProcessPacket(tcp, &dir)
 	if RstAck.Flags != 1 || RstAck.CensorshipTriggered() != false {
 		t.Errorf("[RSTACKs] Flag, expected 1, got %d or Censorship Triggered, expected false got %t",
 			RstAck.Flags, RstAck.CensorshipTriggered())
@@ -51,7 +56,8 @@ func TestRSTACKs(t *testing.T) {
 	tcp = &layers.TCP{
 		ACK: true,
 	}
-	RstAck.ProcessPacket(tcp)
+	dir = reassembly.TCPDirServerToClient
+	RstAck.ProcessPacket(tcp, &dir)
 	if RstAck.Flags != 1 || RstAck.CensorshipTriggered() != false {
 		t.Errorf("[RSTACKs] Flag, expected 1, got %d or Censorship Triggered, expected false got %t",
 			RstAck.Flags, RstAck.CensorshipTriggered())
@@ -62,7 +68,8 @@ func TestRSTACKs(t *testing.T) {
 		RST: true,
 		ACK: true,
 	}
-	RstAck.ProcessPacket(tcp)
+	dir = reassembly.TCPDirClientToServer
+	RstAck.ProcessPacket(tcp, &dir)
 	if RstAck.Flags != 3 || RstAck.CensorshipTriggered() != false {
 		t.Errorf("[RSTACKs] Flag, expected 3, got %d or Censorship Triggered, expected false got %t",
 			RstAck.Flags, RstAck.CensorshipTriggered())
@@ -73,7 +80,8 @@ func TestRSTACKs(t *testing.T) {
 		RST: true,
 		ACK: true,
 	}
-	RstAck.ProcessPacket(tcp)
+	dir = reassembly.TCPDirClientToServer
+	RstAck.ProcessPacket(tcp, &dir)
 	if RstAck.Flags != 7 || RstAck.CensorshipTriggered() != false {
 		t.Errorf("[RSTACKs] Flag, expected 7, got %d or Censorship Triggered, expected false got %t",
 			RstAck.Flags, RstAck.CensorshipTriggered())
@@ -83,7 +91,8 @@ func TestRSTACKs(t *testing.T) {
 	tcp = &layers.TCP{
 		RST: true,
 	}
-	RstAck.ProcessPacket(tcp)
+	dir = reassembly.TCPDirClientToServer
+	RstAck.ProcessPacket(tcp, &dir)
 	if RstAck.Flags != 23 || RstAck.CensorshipTriggered() != true {
 		t.Errorf("[RSTACKs] Flag, expected 23, got %d or Censorship Triggered, expected true got %t",
 			RstAck.Flags, RstAck.CensorshipTriggered())
@@ -94,7 +103,8 @@ func TestRSTACKs(t *testing.T) {
 		RST: true,
 		ACK: true,
 	}
-	RstAck.ProcessPacket(tcp)
+	dir = reassembly.TCPDirClientToServer
+	RstAck.ProcessPacket(tcp, &dir)
 	if RstAck.Flags != 31 || RstAck.CensorshipTriggered() != true {
 		t.Errorf("[RSTACKs] Flag, expected 31, got %d or Censorship Triggered, expected true got %t",
 			RstAck.Flags, RstAck.CensorshipTriggered())
@@ -105,7 +115,8 @@ func TestRSTACKs(t *testing.T) {
 		RST: true,
 		ACK: true,
 	}
-	RstAck.ProcessPacket(tcp)
+	dir = reassembly.TCPDirClientToServer
+	RstAck.ProcessPacket(tcp, &dir)
 	if RstAck.Flags != 31 || RstAck.CensorshipTriggered() != true {
 		t.Errorf("[RSTACKs] Flag, expected 31, got %d or Censorship Triggered, expected true got %t",
 			RstAck.Flags, RstAck.CensorshipTriggered())
@@ -115,7 +126,8 @@ func TestRSTACKs(t *testing.T) {
 	tcp = &layers.TCP{
 		RST: true,
 	}
-	RstAck.ProcessPacket(tcp)
+	dir = reassembly.TCPDirClientToServer
+	RstAck.ProcessPacket(tcp, &dir)
 	if RstAck.Flags != 63 || RstAck.CensorshipTriggered() != true {
 		t.Errorf("[RSTACKs] Flag, expected 63, got %d or Censorship Triggered, expected true got %t",
 			RstAck.Flags, RstAck.CensorshipTriggered())
@@ -125,7 +137,8 @@ func TestRSTACKs(t *testing.T) {
 	tcp = &layers.TCP{
 		RST: true,
 	}
-	RstAck.ProcessPacket(tcp)
+	dir = reassembly.TCPDirClientToServer
+	RstAck.ProcessPacket(tcp, &dir)
 	if RstAck.Flags != 63 || RstAck.CensorshipTriggered() != true {
 		t.Errorf("[RSTACKs] Flag, expected 63, got %d or Censorship Triggered, expected true got %t",
 			RstAck.Flags, RstAck.CensorshipTriggered())
