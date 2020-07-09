@@ -101,7 +101,7 @@ func ReadProtocolFromMeasurementConfig(measurement *MeasurementConfig) protocol.
 		return protocol.NewHTTPCustom(measurement.Port)
 	}
 	fmt.Println(measurement.Protocol)
-	fmt.Printf("[Config2] Invalid Measurement Protocol %s\n", measurement.Protocol)
+	fmt.Printf("[Config] Invalid Measurement Protocol %s\n", measurement.Protocol)
 	os.Exit(1)
 	return nil
 }
@@ -114,7 +114,7 @@ func ReadCensorFromMeasurementConfig(measurement *MeasurementConfig) censor.Cens
 		return censor.NewChina()
 	}
 
-	fmt.Printf("[Config2] Invalid Measurement Censor %s\n", measurement.Censor)
+	fmt.Printf("[Config] Invalid Measurement Censor %s\n", measurement.Censor)
 	os.Exit(1)
 	return nil
 }

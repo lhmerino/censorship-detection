@@ -7,6 +7,8 @@ import (
 	"breakerspace.cs.umd.edu/censorship/measurement/detection"
 	"breakerspace.cs.umd.edu/censorship/measurement/utils/logger"
 	"fmt"
+	"log"
+	"net/http"
 	"os"
 	"runtime"
 	"runtime/pprof"
@@ -55,11 +57,11 @@ func StartConfiguration(cfg *config.Config) (*connection.Options, *tcp.Options, 
 		}
 	}
 
-	//if *httpProfile {
-	//	go func() {
-	//		log.Println(http.ListenAndServe("localhost:6060", nil))
-	//	}()
-	//}
+	if cfg.Profile.HTTPServer.Enabled {
+		go func() {
+			log.Println(http.ListenAndServe("localhost:6060", nil))
+		}()
+	}
 
 	return packetOptions, tcpOptions, cpuFile, memFile
 }

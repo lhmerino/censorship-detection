@@ -1,8 +1,9 @@
 Logger started up...
-BPF Filter: (tcp and port 9999)
+Measurements: China/HTTP on port 9999 & China/HTTP on port 80 & China/HTTP on port 7777
+BPF Filter: (tcp and port 9999) or (tcp and port 80) or (tcp and port 7777)
 Read from pcap: "resources/test.pcap"
 ** NEW Connection: 222.222.222.222->172.172.172.172 59710->9999
-222.222.222.222->172.172.172.172 59710->9999: Relevant Measurements: HTTP on port 9999
+222.222.222.222->172.172.172.172 59710->9999: Relevant Measurements: China/HTTP on port 9999
 222.222.222.222->172.172.172.172 59710->9999(client->server): Accept | S:true, A:false, P:false, R:false F:false
 222.222.222.222->172.172.172.172 59710->9999(client->server): ReassembledSG | 0 bytes, 0 content saved (start:true,end:false,skip:0,saved:0,nb:1,1,overlap:0,0)
 172.172.172.172->222.222.222.222 9999->59710(server->client): Accept | S:true, A:true, P:false, R:false F:false
