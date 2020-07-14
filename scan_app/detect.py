@@ -1,40 +1,28 @@
 import requests
 import json
-from scapy.all import *
-from scapy.layers.dns import IP
-#from threading import Thread
 import subprocess
 from pprint import pprint
 import argparse
-parser = argparse.ArgumentParser()
-parser.parse_args()
-
-Subjects_File = 'resources/China_ASN_IP.json'
-PCAP_File = 'pcap_file'
-Results_File = 'results/censored_requests_results.json'
-Interface = 'en0'
+import random
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.poolmanager import PoolManager
 
 
-def main():
-    ASN_IPs = get_subjects()
-
-    # PCAP capture
-    # pcap_capture = Capture(Interface)
-    # pcap_capture.start()
-    #
-    # time.sleep(5.0)
-
-    pcap_capture = subprocess.run("tcpdump -i " + Interface + " -w pcap")
+def detect_censorship(config):
+    ASN_IPs = get_subjects(config)
 
     count = 0
     result = {}
     for ASN in ASN_IPs:
         for data in ASN_IPs[ASN]:
+            request = detect_censorship_one(config, data['IP'], data['Domain'])
+
             result[data['IP']] = {
                 'IP': data['IP'],
                 'Domain': data['Domain'],
                 'ASN': ASN,
-                'Censored': censorship_request(data['IP'], data['Domain'])
+                'Censored': request,
+                'Detected': request
             }
             pprint("[*] " + str(count))
             count += 1
@@ -42,21 +30,30 @@ def main():
                 break
         break
 
-    with open(Results_File, 'w') as outfile:
+    with open(config.results_file, 'w') as outfile:
         json.dump(result, outfile, indent=4)
 
 
-
-    # pcap_capture.join(2.0)
-    #
-    # if pcap_capture.is_alive():
-    #     pcap_capture.socket.close()
-
-
-def get_subjects():
-    with open(Subjects_File) as file:
+def get_subjects(config):
+    with open(config.censorship) as file:
         contents = json.load(file)
         return contents
+
+
+def detect_censorship_one(config, ip, domain):
+    s = requests.Session()
+    port = random.uniform(1025, 65534)
+    s.mount('http://', SourcePortAdapter(port))
+    s.mount('https://', SourcePortAdapter(port))
+
+    pcap_capture_process = subprocess.Popen("tcpdump -i " + config.interface + " -n port " + port + "' -w pcap",
+                                            shell=True)
+
+    censorship_request(ip, domain)
+
+    subprocess.Popen.kill(pcap_capture_process)
+
+    #censorship_detect_app = subprocess.Popen("")
 
 
 def censorship_request(ip, domain):
@@ -75,45 +72,32 @@ def censorship_request(ip, domain):
 
     return True
 
-# Code adapted from https://blog.skyplabs.net/2018/03/01/python-sniffing-inside-a-thread-with-scapy/
-# class Capture(Thread):
-#     def __init__(self, interface):
-#         super().__init__()
-#         self.interface = interface
-#         self.daemon = True
-#         self.socket = None
-#         self.stop_sniffer = Event()
-#
-#     def run(self):
-#         pprint("Running")
-#         self.socket = conf.L2listen(
-#             type=ETH_P_ALL,
-#             iface=self.interface,
-#             filter="ip"
-#         )
-#
-#         sniff(
-#             opened_socket=self.socket,
-#             prn=self.store_packet,
-#             stop_filter=self.should_stop_sniffer
-#         )
-#
-#     def store_packet(self, pkt):
-#         ip_layer = pkt.getlayer(IP)
-#         print("[!] New Packet: {src} -> {dst}".format(src=ip_layer.src, dst=ip_layer.dst))
-#         wrpcap(PCAP_File, pkt, append=True)
-#
-#     def should_stop_sniffer(self, pkt):
-#         return self.stop_sniffer.isSet()
-#
-#     def join(self, timeout=None):
-#         self.stop_sniffer.set()
-#         super().join(timeout)
 
-def parseFlags():
-    pass
+# Code from https://stackoverflow.com/questions/47202790/python-requests-how-to-specify-port-for-outgoing-traffic
+class SourcePortAdapter(HTTPAdapter):
+    """"Transport adapter" that allows us to set the source port."""
+    def __init__(self, port, *args, **kwargs):
+        self._source_port = port
+        super(SourcePortAdapter, self).__init__(*args, **kwargs)
+
+    def init_poolmanager(self, connections, maxsize, block=False):
+        self.poolmanager = PoolManager(
+            num_pools=connections, maxsize=maxsize,
+            block=block, source_address=('', self._source_port))
+
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("input-file", help="Censorship Test Input File", action='store')
+    parser.add_argument("interface", help="Interface to listen on to capture packets", action='store')
+    parser.add_argument("--pcap-file", help="Path to pcap results file", action='store')
+    parser.add_argument("--results-file", help="Path to censorship results file", action='store')
+
+    config = parser.parse_args()
+    return config
 
 
 if __name__ == '__main__':
-    parseFlags()
-    main()
+    config = parse_args()
+    detect_censorship(config)
