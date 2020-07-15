@@ -6,23 +6,29 @@ import argparse
 import random
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.poolmanager import PoolManager
+import uuid
+import time
+
+MAX_TRIES = 3
+# python detect.py resources/China_ASN_IP.json en0 --pcap-path pcaps --results-file results/censorship_result.json
 
 
 def detect_censorship(config):
     ASN_IPs = get_subjects(config)
+    build_go_measurement_app()
 
     count = 0
     result = {}
     for ASN in ASN_IPs:
         for data in ASN_IPs[ASN]:
-            request = detect_censorship_one(config, data['IP'], data['Domain'])
+            censored, pcap = detect_censorship_one(config, data['IP'], data['Domain'])
 
             result[data['IP']] = {
                 'IP': data['IP'],
                 'Domain': data['Domain'],
                 'ASN': ASN,
-                'Censored': request,
-                'Detected': request
+                'Censored': censored,
+                'PCAP': pcap
             }
             pprint("[*] " + str(count))
             count += 1
@@ -35,42 +41,62 @@ def detect_censorship(config):
 
 
 def get_subjects(config):
-    with open(config.censorship) as file:
+    with open(config.input) as file:
         contents = json.load(file)
         return contents
 
 
 def detect_censorship_one(config, ip, domain):
-    s = requests.Session()
-    port = random.uniform(1025, 65534)
-    s.mount('http://', SourcePortAdapter(port))
-    s.mount('https://', SourcePortAdapter(port))
+    session = requests.Session()
+    port = int(random.uniform(1025, 65534))
+    session.mount('http://', SourcePortAdapter(port))
+    session.mount('https://', SourcePortAdapter(port))
 
-    pcap_capture_process = subprocess.Popen("tcpdump -i " + config.interface + " -n port " + port + "' -w pcap",
-                                            shell=True)
+    pcap = "pcap_" + str(uuid.uuid1().int) + ".pcap"
 
-    censorship_request(ip, domain)
+    tcpdump = "tcpdump -i " + config.interface + " -n port " + str(port) + " -w " + config.pcap_path + "/" + pcap
+    pprint(tcpdump)
+    pcap_capture_process = subprocess.Popen(tcpdump, shell=True)
+
+    censored = censorship_request(session, ip, domain)
+
+    time.sleep(10)
 
     subprocess.Popen.kill(pcap_capture_process)
 
-    #censorship_detect_app = subprocess.Popen("")
+    return censored, pcap
 
 
-def censorship_request(ip, domain):
+def build_go_measurement_app():
+    process = subprocess.Popen("cd ../app && go build -o ../build/measurement .", shell=True)
+    process.wait()
+    if process.returncode != 0:
+        print("Error building go measurement app. Terminating...")
+        exit(1)
+
+def detect_censorship_verify():
+    #censorship_detect_app = subprocess.Popen("../build/measurement -config_file ../app/config/config.yml")
+
+    pass
+
+
+def censorship_request(session, ip, domain):
     header = {
         'Host': domain
     }
 
-    try:
-        requests.get("http://%s/" % ip, headers=header,
-                     timeout=5)
-    except ConnectionResetError:
-        # Censorship Detected
-        return True
-    except Exception:
-        return False
+    count = 0
 
-    return True
+    while count < MAX_TRIES:
+        try:
+            session.get("http://%s/" % ip, headers=header, timeout=5)
+        except ConnectionResetError:
+            # Censorship Detected
+            return True
+        except Exception:
+            count += 1
+
+    return False
 
 
 # Code from https://stackoverflow.com/questions/47202790/python-requests-how-to-specify-port-for-outgoing-traffic
@@ -89,12 +115,14 @@ class SourcePortAdapter(HTTPAdapter):
 def parse_args():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("input-file", help="Censorship Test Input File", action='store')
+    parser.add_argument("input", help="Censorship Test Input File", action='store')
     parser.add_argument("interface", help="Interface to listen on to capture packets", action='store')
-    parser.add_argument("--pcap-file", help="Path to pcap results file", action='store')
+    parser.add_argument("--pcap-path", help="Path to pcaps", action='store')
     parser.add_argument("--results-file", help="Path to censorship results file", action='store')
 
     config = parser.parse_args()
+
+    pprint(config)
     return config
 
 
