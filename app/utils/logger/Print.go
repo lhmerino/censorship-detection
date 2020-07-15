@@ -1,37 +1,23 @@
 package logger
 
 import (
+	"breakerspace.cs.umd.edu/censorship/measurement/config"
 	"bytes"
 	"encoding/hex"
 	"fmt"
 	"github.com/google/gopacket"
 	"os"
-	"syscall"
 )
 
 type Print struct {
-	Logging
 	outputLevel uint8
 	file        *os.File
 }
 
-func NewPrint(fd int, debug *bool, verbose *bool, quiet *bool) *Print {
+func NewPrint(cfg *config.Config) *Print {
 	p := &Print{}
 
-	if fd != -1 {
-		p.file = os.NewFile(uintptr(fd), "Custom")
-	} else {
-		p.file = os.NewFile(uintptr(syscall.Stdout), "/dev/stdout")
-	}
-
-	p.outputLevel = 1
-	if *debug {
-		p.outputLevel = 3
-	} else if *verbose {
-		p.outputLevel = 2
-	} else if *quiet {
-		p.outputLevel = 0
-	}
+	p.file, p.outputLevel = commonSetup(cfg)
 
 	return p
 }

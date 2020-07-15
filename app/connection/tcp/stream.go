@@ -29,7 +29,7 @@ func (t *Stream) Accept(tcp *layers.TCP, ci gopacket.CaptureInfo, dir reassembly
 
 	// Censorship Measurement: Process Packet
 	for i := 0; i < len(t.measurements); i++ {
-		(*t.measurements[i].Censor).ProcessPacket(t.measurementStorage[i], tcp, ci, dir)
+		(*t.measurements[i].Censor).ProcessPacket(t.measurementStorage[i], tcp, &ci, &dir)
 	}
 
 	return true
@@ -75,7 +75,11 @@ func (t *Stream) ReassemblyComplete(ac reassembly.AssemblerContext) bool {
 
 	// Detect if censorship occurred in this stream
 	for i := 0; i < len(t.measurements); i++ {
-		(*t.measurements[i].Censor).DetectCensorship(t.measurementStorage[i], &t.net, &t.transport, &t.contents)
+		if (*t.measurements[i].Censor).DetectCensorship(t.measurementStorage[i], &t.net, &t.transport, &t.contents) {
+			logger.Logger.Connection(&t.net, &t.transport, &t.contents)
+		} else {
+			logger.Logger.Info("Connection not censored")
+		}
 	}
 
 	// do not remove the connection to see further along the connection

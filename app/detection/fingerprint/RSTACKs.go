@@ -2,7 +2,6 @@ package fingerprint
 
 import (
 	"breakerspace.cs.umd.edu/censorship/measurement/utils/bits"
-	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/reassembly"
 )
@@ -16,9 +15,8 @@ func NewRSTACKs() *RSTACKs {
 	return &RSTACKs{Flags: 0}
 }
 
-func (r *RSTACKs) ProcessPacket(tcp *layers.TCP, ci gopacket.CaptureInfo,
-	dir reassembly.TCPFlowDirection) {
-	r.flagsUpdate(tcp)
+func (r *RSTACKs) ProcessPacket(tcp *layers.TCP, dir *reassembly.TCPFlowDirection) {
+	r.flagsUpdate(tcp, dir)
 }
 
 func (r *RSTACKs) CensorshipTriggered() bool {
@@ -32,18 +30,23 @@ func (r *RSTACKs) CensorshipTriggered() bool {
 	return false
 }
 
-func (r *RSTACKs) flagsUpdate(tcp *layers.TCP) {
-	if tcp.PSH {
+func (r *RSTACKs) flagsUpdate(tcp *layers.TCP, dir *reassembly.TCPFlowDirection) {
+	if tcp.PSH && *dir == reassembly.TCPDirClientToServer {
 		r.Flags = bits.SetBit8(r.Flags, 0)
-	} else if tcp.RST && tcp.ACK && !bits.HasBit8(r.Flags, 1) {
+	} else if tcp.RST && tcp.ACK && !bits.HasBit8(r.Flags, 1) &&
+		*dir == reassembly.TCPDirClientToServer {
 		r.Flags = bits.SetBit8(r.Flags, 1)
-	} else if tcp.RST && tcp.ACK && !bits.HasBit8(r.Flags, 2) {
+	} else if tcp.RST && tcp.ACK && !bits.HasBit8(r.Flags, 2) &&
+		*dir == reassembly.TCPDirClientToServer {
 		r.Flags = bits.SetBit8(r.Flags, 2)
-	} else if tcp.RST && tcp.ACK && !bits.HasBit8(r.Flags, 3) {
+	} else if tcp.RST && tcp.ACK && !bits.HasBit8(r.Flags, 3) &&
+		*dir == reassembly.TCPDirClientToServer {
 		r.Flags = bits.SetBit8(r.Flags, 3)
-	} else if tcp.RST && !tcp.ACK && !bits.HasBit8(r.Flags, 4) {
+	} else if tcp.RST && !tcp.ACK && !bits.HasBit8(r.Flags, 4) &&
+		*dir == reassembly.TCPDirClientToServer {
 		r.Flags = bits.SetBit8(r.Flags, 4)
-	} else if tcp.RST && !tcp.ACK && !bits.HasBit8(r.Flags, 5) {
+	} else if tcp.RST && !tcp.ACK && !bits.HasBit8(r.Flags, 5) &&
+		*dir == reassembly.TCPDirClientToServer {
 		r.Flags = bits.SetBit8(r.Flags, 5)
 	}
 }

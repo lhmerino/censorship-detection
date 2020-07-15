@@ -1,12 +1,14 @@
 package detection
 
 import (
+	"breakerspace.cs.umd.edu/censorship/measurement/config"
 	"breakerspace.cs.umd.edu/censorship/measurement/detection/censor"
 	"breakerspace.cs.umd.edu/censorship/measurement/detection/protocol"
 	"github.com/google/gopacket"
 )
 
-//Measurement contains a specific Protocol and a specific Censor
+//Measurement :
+//	Composed of a specific Protocol and a specific Censor
 type Measurement struct {
 	//Interface
 	Censor   *censor.Censor
@@ -15,6 +17,7 @@ type Measurement struct {
 	// Protocol Options
 	Port int
 }
+
 
 var Measurements []*Measurement
 
@@ -36,8 +39,21 @@ type stats struct {
 	overlapPackets      int
 }
 
+
 func NewMeasurement(censor censor.Censor, protocol protocol.Protocol) *Measurement {
 	return &Measurement{Censor: &censor, Protocol: &protocol}
+}
+
+// SetupMeasurements :
+//	Dynamic Measurement Setup based on YAML config file
+func SetupMeasurements(cfg *config.Config) {
+	Measurements = make([]*Measurement, len(cfg.MeasurementConfigs))
+	for i, measurement := range cfg.MeasurementConfigs {
+		protocolVar := config.ReadProtocolFromMeasurementConfig(&measurement)
+		censorVar := config.ReadCensorFromMeasurementConfig(&measurement)
+
+		Measurements[i] = NewMeasurement(censorVar, protocolVar)
+	}
 }
 
 func GetBPFFilters(measurements []*Measurement) string {
@@ -76,8 +92,10 @@ func GetBasicInfo(measurements []*Measurement) string {
 	measurementsLength := len(measurements)
 	for i := 0; i < measurementsLength; i++ {
 		if i != measurementsLength-1 {
+			basicInfo += (*measurements[i].Censor).GetBasicInfo() + "/"
 			basicInfo += (*measurements[i].Protocol).GetBasicInfo() + " & "
 		} else {
+			basicInfo += (*measurements[i].Censor).GetBasicInfo() + "/"
 			basicInfo += (*measurements[i].Protocol).GetBasicInfo()
 		}
 	}

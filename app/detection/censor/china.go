@@ -2,7 +2,6 @@ package censor
 
 import (
 	"breakerspace.cs.umd.edu/censorship/measurement/detection/fingerprint"
-	"breakerspace.cs.umd.edu/censorship/measurement/utils/logger"
 	"bytes"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
@@ -27,19 +26,24 @@ func (c *China) RelevantNewConnection(net gopacket.Flow, transport gopacket.Flow
 	return true
 }
 
+func (c *China) GetBasicInfo() string {
+	return "China"
+}
+
 func (c *China) NewStream() interface{} {
 	return fingerprint.NewRSTACKs()
 }
 
-func (c *China) ProcessPacket(someInterface interface{}, tcp *layers.TCP, ci gopacket.CaptureInfo,
-	dir reassembly.TCPFlowDirection) {
+func (c *China) ProcessPacket(someInterface interface{}, tcp *layers.TCP, ci *gopacket.CaptureInfo,
+	dir *reassembly.TCPFlowDirection) {
 	rstACKs := someInterface.(*fingerprint.RSTACKs)
-	rstACKs.ProcessPacket(tcp, ci, dir)
+	rstACKs.ProcessPacket(tcp, dir)
 }
 
-func (c *China) DetectCensorship(someInterface interface{}, net *gopacket.Flow, transport *gopacket.Flow, content *bytes.Buffer) {
+func (c *China) DetectCensorship(someInterface interface{}, net *gopacket.Flow, transport *gopacket.Flow, content *bytes.Buffer) bool {
 	rstACKs := someInterface.(*fingerprint.RSTACKs)
 	if rstACKs.CensorshipTriggered() {
-		logger.Logger.Connection(net, transport, content)
+		return true
 	}
+	return false
 }

@@ -13,8 +13,8 @@ type Censor interface {
 
 	NewStream() interface{}
 
-	ProcessPacket(someInterface interface{}, tcp *layers.TCP, ci gopacket.CaptureInfo,
-		dir reassembly.TCPFlowDirection)
+	ProcessPacket(someInterface interface{}, tcp *layers.TCP, ci *gopacket.CaptureInfo,
+		dir *reassembly.TCPFlowDirection)
 
-	DetectCensorship(someInterface interface{}, net *gopacket.Flow, transport *gopacket.Flow, content *bytes.Buffer)
+	DetectCensorship(someInterface interface{}, net *gopacket.Flow, transport *gopacket.Flow, content *bytes.Buffer) bool
 }
