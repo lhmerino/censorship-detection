@@ -13,6 +13,7 @@ var configFile = flag.String("config_file", "app/config/config.yml", "Config fil
 
 var pcapFile = flag.String("pcap", "", "PCAP file")
 var iface = flag.String("iface", "", "Interface to get packets from")
+var logFile = flag.String("log-file", "", "Path to log file")
 
 var portFirstMeasurement = flag.Int("port", -1, "Override Port for first Measurement")
 
@@ -43,5 +44,8 @@ func overrideArgs(cfg *config.Config) {
 		cfg.Packet.Input.Interface = *iface
 	} else if *portFirstMeasurement != -1 {
 		cfg.MeasurementConfigs[0].Port = uint16(*portFirstMeasurement)
+	} else if *logFile != "" {
+		cfg.Logging.Output.File = *logFile
+		cfg.Logging.Output.Fd = -1
 	}
 }
