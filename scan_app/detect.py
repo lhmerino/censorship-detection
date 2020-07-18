@@ -10,8 +10,9 @@ import uuid
 import time
 
 MAX_TRIES = 3
-# python detect.py resources/China_ASN_IP.json en0 --pcap-path pcaps --results-file results/censorship_result.json
-
+# python detect.py resources/test.json en0 results/censorship_result.json
+# Censored: curl -H "Host: groups.google.com" 120.77.156.227
+# Censored: curl -H "Host: google.com.sa" 114.55.249.66
 
 def detect_censorship(config):
     ASN_IPs = get_subjects(config)
@@ -21,6 +22,7 @@ def detect_censorship(config):
     result = {}
     for ASN in ASN_IPs:
         for data in ASN_IPs[ASN]:
+            pprint("[Scan App] IP:" + data['IP'] + "-Domain: " +data['Domain'])
             censored, pcap = detect_censorship_one(config, data['IP'], data['Domain'])
 
             result[data['IP']] = {
@@ -47,37 +49,58 @@ def get_subjects(config):
 
 
 def detect_censorship_one(config, ip, domain):
+    # Choose random local port
     session = requests.Session()
     port = int(random.uniform(1025, 65534))
     session.mount('http://', SourcePortAdapter(port))
     session.mount('https://', SourcePortAdapter(port))
 
+    # TCPDump start
     pcap = "pcap_" + str(uuid.uuid1().int) + ".pcap"
-
     tcpdump = "tcpdump -i " + config.interface + " -n port " + str(port) + " -w " + config.pcap_path + "/" + pcap
+    pcap_capture_process = subprocess.Popen(tcpdump, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     pprint(tcpdump)
-    pcap_capture_process = subprocess.Popen(tcpdump, shell=True)
+    time.sleep(3)
 
+    # Censored Request
     censored = censorship_request(session, ip, domain)
 
+    # TCPDump End
     time.sleep(10)
+    pcap_capture_process.send_signal(subprocess.signal.SIGTERM)
 
-    subprocess.Popen.kill(pcap_capture_process)
+    # Measurement Go app detected correct result from pcap
+    detect_censorship_verify(config, pcap, port)
 
     return censored, pcap
 
 
 def build_go_measurement_app():
-    process = subprocess.Popen("cd ../app && go build -o ../build/measurement .", shell=True)
+    process = subprocess.Popen("cd ../app && go build -o ../build/measurement -a .", shell=True, stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE)
     process.wait()
+    pprint("[Build Measurement] STDOUT: " + str(process.stdout.read()))
+    pprint("[Build Measurement] STDERR: " + str(process.stderr.read()))
     if process.returncode != 0:
         print("Error building go measurement app. Terminating...")
         exit(1)
 
-def detect_censorship_verify():
-    #censorship_detect_app = subprocess.Popen("../build/measurement -config_file ../app/config/config.yml")
+def detect_censorship_verify(config, pcap, local_port):
+    pcap_filepath = config.pcap_path + "/" + pcap
+    log_filepath = config.measurement_logs + "/" + pcap.split('_')[1].split('.')[0] + ".log"
+    pprint("../build/measurement --config_file resources/config_china_http.yml --pcap " + pcap_filepath + " --port " +
+           str(local_port) + " --log-file \"" + log_filepath + "\"")
+    censorship_detect_app = subprocess.Popen("../build/measurement --config_file resources/config_china_http.yml "
+                                             "--pcap " + pcap_filepath + " --port " + str(local_port) + " --log-file \""
+                                             + log_filepath + "\"", shell=True, stdout=subprocess.PIPE,
+                                             stderr=subprocess.PIPE)
 
-    pass
+    censorship_detect_app.wait()
+    time.sleep(2)
+    pprint("[Go Measurement App] stdout: " + str(censorship_detect_app.stdout.read()))
+    pprint("[Go Measurement App] stderr: " + str(censorship_detect_app.stderr.read()))
+    with open(log_filepath, 'r') as fin:
+        print("[Go Measurement App]: " + fin.read())
 
 
 def censorship_request(session, ip, domain):
@@ -117,8 +140,9 @@ def parse_args():
 
     parser.add_argument("input", help="Censorship Test Input File", action='store')
     parser.add_argument("interface", help="Interface to listen on to capture packets", action='store')
-    parser.add_argument("--pcap-path", help="Path to pcaps", action='store')
-    parser.add_argument("--results-file", help="Path to censorship results file", action='store')
+    parser.add_argument("results_file", help="Path to censorship results file", action='store')
+    parser.add_argument("--pcap-path", default="pcaps", help="Path to pcaps", action='store')
+    parser.add_argument("--measurement-logs", default="logs", help="Path to measurement logs", action='store')
 
     config = parser.parse_args()
 
