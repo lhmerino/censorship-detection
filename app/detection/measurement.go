@@ -4,56 +4,85 @@ import (
 	"breakerspace.cs.umd.edu/censorship/measurement/config"
 	"breakerspace.cs.umd.edu/censorship/measurement/detection/censor"
 	"breakerspace.cs.umd.edu/censorship/measurement/detection/protocol"
+	"breakerspace.cs.umd.edu/censorship/measurement/utils/logger"
 	"github.com/google/gopacket"
+	"os"
 )
 
 //Measurement :
-//	Composed of a specific Protocol and a specific Censor
+//	Composed of a specific Protocol, a specific Censor and Options
 type Measurement struct {
 	//Interface
 	Censor   *censor.Censor
 	Protocol *protocol.Protocol
 
-	// Protocol Options
-	Port int
+	// Options
+	Options *config.MeasurementOptions
 }
 
 
 var Measurements []*Measurement
 
-type stats struct {
-	ipdefrag            int
-	missedBytes         int
-	pkt                 int
-	sz                  int
-	totalsz             int
-	rejectFsm           int
-	rejectOpt           int
-	rejectConnFsm       int
-	reassembled         int
-	outOfOrderBytes     int
-	outOfOrderPackets   int
-	biggestChunkBytes   int
-	biggestChunkPackets int
-	overlapBytes        int
-	overlapPackets      int
-}
+//type stats struct {
+//	ipdefrag            int
+//	missedBytes         int
+//	pkt                 int
+//	sz                  int
+//	totalsz             int
+//	rejectFsm           int
+//	rejectOpt           int
+//	rejectConnFsm       int
+//	reassembled         int
+//	outOfOrderBytes     int
+//	outOfOrderPackets   int
+//	biggestChunkBytes   int
+//	biggestChunkPackets int
+//	overlapBytes        int
+//	overlapPackets      int
+//}
 
 
-func NewMeasurement(censor censor.Censor, protocol protocol.Protocol) *Measurement {
-	return &Measurement{Censor: &censor, Protocol: &protocol}
+func NewMeasurement(censor *censor.Censor, protocol *protocol.Protocol, options *config.MeasurementOptions) *Measurement {
+	return &Measurement{Censor: censor, Protocol: protocol, Options: options}
 }
 
 // SetupMeasurements :
 //	Dynamic Measurement Setup based on YAML config file
 func SetupMeasurements(cfg *config.Config) {
 	Measurements = make([]*Measurement, len(cfg.MeasurementConfigs))
-	for i, measurement := range cfg.MeasurementConfigs {
-		protocolVar := config.ReadProtocolFromMeasurementConfig(&measurement)
-		censorVar := config.ReadCensorFromMeasurementConfig(&measurement)
+	for i, _ := range cfg.MeasurementConfigs {
+		protocolVar := ReadProtocolFromMeasurementConfig(&cfg.MeasurementConfigs[i])
+		censorVar := ReadCensorFromMeasurementConfig(&cfg.MeasurementConfigs[i])
 
-		Measurements[i] = NewMeasurement(censorVar, protocolVar)
+		Measurements[i] = NewMeasurement(&censorVar, &protocolVar, &cfg.MeasurementConfigs[i].Options)
 	}
+}
+
+// ReadProtocolFromMeasurementConfig :
+//	Returns the protocol implementation given the string value
+//	specified in the measurement definition in the YAML file
+func ReadProtocolFromMeasurementConfig(measurement *config.MeasurementConfig) protocol.Protocol {
+	// Protocols
+	if measurement.Protocol == "HTTP" {
+		return protocol.NewHTTPCustom(measurement.Port)
+	}
+	logger.Logger.Error(measurement.Protocol)
+	logger.Logger.Error("[Config] Invalid Measurement Protocol %s\n", measurement.Protocol)
+	os.Exit(1)
+	return nil
+}
+
+// ReadCensorFromMeasurementConfig :
+//	Returns the censor implementation given the string value
+//	specified in the measurement definition in the YAML file
+func ReadCensorFromMeasurementConfig(measurement *config.MeasurementConfig) censor.Censor {
+	if measurement.Censor == "China" {
+		return censor.NewChina(&measurement.Options)
+	}
+
+	logger.Logger.Error("[Config] Invalid Measurement Censor %s\n", measurement.Censor)
+	os.Exit(1)
+	return nil
 }
 
 func GetBPFFilters(measurements []*Measurement) string {
@@ -76,15 +105,15 @@ func GetBPFFilters(measurements []*Measurement) string {
 */
 func RelevantNewConnection(measurements []*Measurement,
 	net gopacket.Flow, transport gopacket.Flow) []*Measurement {
-	var measurementsApply []*Measurement
+	var applicableMeasurements []*Measurement
 	for i := 0; i < len(measurements); i++ {
 		if (*measurements[i].Protocol).RelevantNewConnection(net, transport) &&
 			(*measurements[i].Censor).RelevantNewConnection(net, transport) {
-			measurementsApply = append(measurementsApply, measurements[i])
+			applicableMeasurements = append(applicableMeasurements, measurements[i])
 		}
 	}
 
-	return measurementsApply
+	return applicableMeasurements
 }
 
 func GetBasicInfo(measurements []*Measurement) string {

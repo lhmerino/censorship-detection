@@ -1,8 +1,12 @@
 package shared
 
-import "github.com/google/gopacket"
+import (
+	"github.com/google/gopacket"
+	"github.com/google/gopacket/layers"
+	"github.com/google/gopacket/reassembly"
+)
 
-type SharedInterface interface {
+type MainInterface interface {
 	// Get the name of the specific type (censor, protocol)
 	GetName() string
 
@@ -11,4 +15,9 @@ type SharedInterface interface {
 
 	// Get basic identifiable information on specific type
 	GetBasicInfo() string
+}
+
+type ProcessPacketInterface interface {
+	ProcessPacket(someInterface interface{}, tcp *layers.TCP, ci *gopacket.CaptureInfo,
+		dir *reassembly.TCPFlowDirection)
 }

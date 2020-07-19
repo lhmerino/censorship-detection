@@ -1,4 +1,5 @@
 build
 scan_app/pcaps
 scan_app/results
+scan_app/logs
 other

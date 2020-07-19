@@ -4,7 +4,7 @@ import (
 	"breakerspace.cs.umd.edu/censorship/measurement/connection/tcp"
 	"breakerspace.cs.umd.edu/censorship/measurement/detection"
 	"breakerspace.cs.umd.edu/censorship/measurement/detection/censor"
-	"breakerspace.cs.umd.edu/censorship/measurement/detection/fingerprint"
+	"breakerspace.cs.umd.edu/censorship/measurement/detection/censor/fingerprint"
 	"breakerspace.cs.umd.edu/censorship/measurement/detection/protocol"
 	"breakerspace.cs.umd.edu/censorship/measurement/utils/logger"
 	"fmt"

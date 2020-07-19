@@ -33,7 +33,8 @@ func SetupLogging(cfg *config.Config) {
 		// File Output
 		fd, err := syscall.Open(cfg.Logging.Output.File, syscall.O_APPEND|syscall.O_CREAT|syscall.O_WRONLY, 644)
 		if err != nil {
-			_, _ = fmt.Fprintf(os.Stderr, "Failed to setup file logging: %d, %s\n", fd, err.Error())
+			_, _ = fmt.Fprintf(os.Stderr, "Failed to setup file logging: %s, %s\n", cfg.Logging.Output.File,
+				err.Error())
 			os.Exit(3)
 		}
 		cfg.Logging.Output.Fd = fd // Converting to Fd

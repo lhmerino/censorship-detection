@@ -5,6 +5,7 @@ package tcp
  */
 
 import (
+	"breakerspace.cs.umd.edu/censorship/measurement/detection/censor"
 	"breakerspace.cs.umd.edu/censorship/measurement/utils/logger"
 	"fmt"
 	"github.com/google/gopacket"
@@ -12,10 +13,11 @@ import (
 	"github.com/google/gopacket/reassembly"
 )
 
+// Accept :
 // Each packet in the TCP stream passes through here to determine if it should be considered for reassembly
 func (t *Stream) Accept(tcp *layers.TCP, ci gopacket.CaptureInfo, dir reassembly.TCPFlowDirection,
 	nextSeq reassembly.Sequence, start *bool, ac reassembly.AssemblerContext) bool {
-
+	logger.Logger.Debug("[Stream:Accept] Function Call")
 	// Determine the flow direction
 	var dirString string
 	if dir == reassembly.TCPDirClientToServer {
@@ -30,6 +32,16 @@ func (t *Stream) Accept(tcp *layers.TCP, ci gopacket.CaptureInfo, dir reassembly
 	// Censorship Measurement: Process Packet
 	for i := 0; i < len(t.measurements); i++ {
 		(*t.measurements[i].Censor).ProcessPacket(t.measurementStorage[i], tcp, &ci, &dir)
+	}
+
+	// Detect if censorship occurred in this stream up to this point
+	for i := 0; i < len(t.measurements); i++ {
+		censorshipDetected := (*t.measurements[i].Censor).DetectCensorship(t.measurementStorage[i])
+		if censorshipDetected == censor.NEW_DETECTED {
+			logger.Logger.Connection(&t.net, &t.transport, &t.contents)
+		} else if censorshipDetected == censor.OLD_DETECTED {
+			logger.Logger.Info("[Censorship] Already Detected")
+		}
 	}
 
 	return true
@@ -72,15 +84,6 @@ func (t *Stream) ReassembledSG(sg reassembly.ScatterGather, ac reassembly.Assemb
 
 func (t *Stream) ReassemblyComplete(ac reassembly.AssemblerContext) bool {
 	logger.Logger.Debug("%s %s: TCP Stream Reassembly Complete", t.net, t.transport)
-
-	// Detect if censorship occurred in this stream
-	for i := 0; i < len(t.measurements); i++ {
-		if (*t.measurements[i].Censor).DetectCensorship(t.measurementStorage[i], &t.net, &t.transport, &t.contents) {
-			logger.Logger.Connection(&t.net, &t.transport, &t.contents)
-		} else {
-			logger.Logger.Info("Connection not censored")
-		}
-	}
 
 	// do not remove the connection to see further along the connection
 	return false

@@ -1,7 +1,7 @@
 package tests
 
 import (
-	"breakerspace.cs.umd.edu/censorship/measurement/detection/fingerprint"
+	"breakerspace.cs.umd.edu/censorship/measurement/detection/censor/fingerprint"
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/reassembly"
 	"testing"

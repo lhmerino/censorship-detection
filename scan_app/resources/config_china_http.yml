@@ -30,7 +30,9 @@ protocol: # Protocol Specific Options
 measurements:
   - censor: China
     protocol: HTTP
-    port: 9999
+    port: 80
+    options:
+      direcrtion: false # Should packet direction be taken into account
 
 profile: # Performance Testing
   cpu:

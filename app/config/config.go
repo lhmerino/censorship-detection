@@ -1,12 +1,15 @@
 package config
 
 import (
-	"breakerspace.cs.umd.edu/censorship/measurement/detection/censor"
-	"breakerspace.cs.umd.edu/censorship/measurement/detection/protocol"
 	"fmt"
 	"gopkg.in/yaml.v2"
 	"os"
 )
+
+
+type MeasurementOptions struct {
+	Direction bool `yaml:"direction"` // Used by Protocol
+}
 
 // MeasurementConfig :
 //	Measurement representation in YAML config file
@@ -14,6 +17,7 @@ type MeasurementConfig struct {
 	Censor string `yaml:"censor"`
 	Protocol string `yaml:"protocol"`
 	Port uint16 `yaml:"port"`
+	Options MeasurementOptions `yaml:"options"`
 }
 
 // Config :
@@ -89,32 +93,4 @@ func ReadConfig(configFile string) Config {
 	}
 
 	return cfg
-}
-
-
-// ReadProtocolFromMeasurementConfig :
-//	Returns the protocol implementation given the string value
-//	specified in the measurement definition in the YAML file
-func ReadProtocolFromMeasurementConfig(measurement *MeasurementConfig) protocol.Protocol {
-	// Protocols
-	if measurement.Protocol == "HTTP" {
-		return protocol.NewHTTPCustom(measurement.Port)
-	}
-	fmt.Println(measurement.Protocol)
-	fmt.Printf("[Config] Invalid Measurement Protocol %s\n", measurement.Protocol)
-	os.Exit(1)
-	return nil
-}
-
-// ReadCensorFromMeasurementConfig :
-//	Returns the censor implementation given the string value
-//	specified in the measurement definition in the YAML file
-func ReadCensorFromMeasurementConfig(measurement *MeasurementConfig) censor.Censor {
-	if measurement.Censor == "China" {
-		return censor.NewChina()
-	}
-
-	fmt.Printf("[Config] Invalid Measurement Censor %s\n", measurement.Censor)
-	os.Exit(1)
-	return nil
 }
