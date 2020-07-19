@@ -1,0 +1,38 @@
+{
+    "172.217.12.174": {
+        "IP": "172.217.12.174",
+        "Domain": "google.com",
+        "ASN": "37963",
+        "SessionID": "19-07-2020_16-17-29-803923",
+        "Censored": false,
+        "RequestError": null,
+        "GoMatch": true
+    },
+    "114.55.249.66": {
+        "IP": "114.55.249.66",
+        "Domain": "google.com.sa",
+        "ASN": "37963",
+        "SessionID": "19-07-2020_16-17-47-251750",
+        "Censored": true,
+        "RequestError": "[Errno 54] Connection reset by peer",
+        "GoMatch": true
+    },
+    "120.77.156.227": {
+        "IP": "120.77.156.227",
+        "Domain": "groups.google.com",
+        "ASN": "37963",
+        "SessionID": "19-07-2020_16-18-05-080956",
+        "Censored": true,
+        "RequestError": "[Errno 54] Connection reset by peer",
+        "GoMatch": true
+    },
+    "8.8.8.8": {
+        "IP": "8.8.8.8",
+        "Domain": "goo.com",
+        "ASN": "37963",
+        "SessionID": "19-07-2020_16-18-19-728297",
+        "Censored": false,
+        "RequestError": "HTTPConnectionPool(host='8.8.8.8', port=80): Max retries exceeded with url: / (Caused by ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x10a084ad0>, 'Connection to 8.8.8.8 timed out. (connect timeout=5)'))",
+        "GoMatch": true
+    }
+}
