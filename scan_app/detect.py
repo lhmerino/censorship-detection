@@ -8,84 +8,191 @@ from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.poolmanager import PoolManager
 import time
 from datetime import datetime
+import os
 
 MAX_TRIES = 3
 DEBUG = False
-# python detect.py resources/test.json en0 results/censorship_result.json
-# Censored: curl -H "Host: groups.google.com" 120.77.156.227
-# Censored: curl -H "Host: google.com.sa" 114.55.249.66
+# python detect.py --input resources/test.json --interface en0
+# --results-file results/censorship_result.json --output-path output
+
+# Censored Query: curl -H "Host: groups.google.com" 120.77.156.227
+# Censored Query: curl -H "Host: google.com.sa" 114.55.249.66
 
 
-def detect_censorship(config):
-    ASN_IPs = get_subjects(config)
+def main(config):
+    with open(config.input) as file:
+        ASN_IPs = json.load(file)
+
     build_go_measurement_app()
 
+    output_path = config.output_path
+    output_path = os.path.join(output_path, datetime.now().strftime("%Y-%m-%d_%H-%M-%S-%f"))
+
+    if not os.path.exists(output_path):
+        os.makedirs(output_path)
+
     count = 1
-    result = {}
+    results = {}
     for ASN in ASN_IPs:
         for data in ASN_IPs[ASN]:
-            pprint("[*] " + str(count) + " [Scan App] IP:" + data['IP'] + " | Domain: " +data['Domain'])
-            censored, err, session_id, go_match = detect_censorship_one(config, data['IP'], data['Domain'])
+            pprint("[*] " + str(count) + " [Scan App] IP:" + data['IP'] + " | Domain: " + data['Domain'])
+            detect_censorship_test = CensorshipTest(data['IP'], data['Domain'], output_path)
+            detect_results = detect_censorship_test.run()
 
-            result[data['IP']] = {
+            results[data['IP']] = {
                 'IP': data['IP'],
                 'Domain': data['Domain'],
                 'ASN': ASN,
-                'SessionID': session_id,
-                'Censored': censored,
-                'RequestError': err,
-                'GoMatch': go_match
+                'Results': detect_results
             }
-            pprint("[Scan App:Result] Session: " + str(session_id) + " |Censored: " + str(censored) + " |GoMatch: " +
-                   str(go_match) + " |Request Error: " + str(err))
+
             count += 1
-        break
 
     with open(config.results_file, 'w') as outfile:
-        json.dump(result, outfile, indent=4)
+        json.dump(results, outfile, indent=4)
 
 
-def get_subjects(config):
-    with open(config.input) as file:
-        contents = json.load(file)
-        return contents
+class CensorshipTest:
+    """
+    Represents the IP, Domain to test for censorship and validate it against the result
+    provided by the go measurement app given the pcap generated during the request
+    """
+    def __init__(self, ip, domain, output_folder):
+        self.ip = ip
+        self.domain = domain
 
+        self.output_folder = output_folder
 
-def detect_censorship_one(config, ip, domain):
-    # Choose random local port
-    port = int(random.uniform(1025, 65534))
+    def run(self):
+        """
+        Runs censorship detection as many times as MAX_TRIES is specified
+        :return: results (list of objects of length MAX_TRIES)
+        """
+        # Choose random local port for request
+        local_port = int(random.uniform(1025, 65530))
 
-    # Choose a session id
-    session_id = datetime.now().strftime("%d-%m-%Y_%H-%M-%S-%f")
+        results = []
+        start_port = local_port
+        while local_port < start_port + MAX_TRIES:
+            # Start tcpdump
+            naming = self.domain.replace('.', '_')
+            pcap_file = os.path.join(self.output_folder, naming + "_" + str(local_port) + ".pcap")
+            pcap_capture_process = CensorshipTest.start_tcpdump(pcap_file, local_port)
 
-    # TCPDump start
-    pcap = "pcap_" + str(session_id) + ".pcap"
-    tcpdump = "tcpdump" \
-              " -i " + config.interface + \
-              " -n port " + str(port) + " or port " + str(port + 1) + " or port " + str(port + 2) + \
-              " -w " + config.pcap_path + "/" + pcap
-    pcap_capture_process = subprocess.Popen(tcpdump, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    if DEBUG:
-        pprint(tcpdump)
-    time.sleep(2)
+            # Perform Request
+            censored, err = CensorshipTest.request(self.ip, self.domain, local_port)
 
-    # Censored Request
-    censored, err = censorship_request(port, ip, domain)
+            # Close tcpdump
+            time.sleep(5)  # Buffer for new packets
+            pcap_capture_process.send_signal(subprocess.signal.SIGTERM)
+            time.sleep(3)
 
-    # TCPDump End
-    time.sleep(10)
-    pcap_capture_process.send_signal(subprocess.signal.SIGTERM)
+            # Compare with go measurement
+            go_log_file = os.path.join(self.output_folder, naming + "_" + str(local_port) + ".log")
+            go_censorship_result = \
+                CensorshipTest.go_measurement_app(go_log_file, pcap_file, local_port)
 
-    # Measurement Go app detected correct result from pcap
-    go_censorship_result = detect_censorship_verify(session_id, config, pcap, port)
+            # Append results
+            results.append({
+                'PCAP': pcap_file,
+                'Go_log': go_log_file,
+                'Censored': censored,
+                'RequestError': err,
+                'GoMatch': censored == go_censorship_result
+            })
 
-    if go_censorship_result == censored:
-        return censored, err, session_id, True
+            print("Censored: " + str(censored) + "\tGoMatch: " + str(go_censorship_result == censored) +
+                  "\tRequestError: " + str(err))
 
-    return censored, err, session_id, False
+            local_port += 1
+
+        return results
+
+    @staticmethod
+    def start_tcpdump(pcap_file, port=5000):
+        """
+        Starts tcpdump process and filters on the given the port number.
+        """
+        # tcpdump command
+        tcpdump = "tcpdump" \
+                  " -i " + config.interface + \
+                  " -n port " + str(port) + \
+                  " -w " + pcap_file
+        if DEBUG:
+            pprint(tcpdump)
+
+        # tcpdump process
+        pcap_capture_process = subprocess.Popen(tcpdump, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+        time.sleep(2)  # Buffer to ensure that tcpdump is running before returning
+
+        return pcap_capture_process
+
+    @staticmethod
+    def request(ip, domain, local_port=5000):
+        """
+        Performs an HTTP request to the IP and detects whether the request was censored
+        """
+        # HTTP Header for HTTP request
+        header = {
+            'Host': domain
+        }
+
+        err = None
+        censored = False
+        s = requests.Session()
+        s.mount('http://', SourcePortAdapter(local_port))
+
+        if DEBUG:
+            pprint("Making request: " + str(ip) + "|" + str(local_port) +
+                    "|" + str(domain) + "|" + str(header))
+
+        try:
+            s.get("http://%s/" % ip, headers=header, timeout=5, allow_redirects=False)
+        except requests.exceptions.ConnectionError as e:
+            if e.__context__ is not None and e.__context__.__context__ is not None:
+                if isinstance(e.__context__.__context__, ConnectionResetError):
+                    # Censorship Detected
+                    censored = True
+
+            err = str(e)
+        except Exception as e:
+            err = str(e)
+
+        return censored, err
+
+    @staticmethod
+    def go_measurement_app(log_file, pcap_file, local_port):
+        """
+        Runs the go measurement app on the pcap generated from the
+        HTTP request and returns whether Censorship was detected.
+        """
+        go_execution = "../build/measurement --config_file resources/config_china_http.yml" + \
+                       " --pcap " + pcap_file + \
+                       " --bpf " + "\"tcp and port " + str(local_port) + "\"" + \
+                       " --log-file \"" + log_file + "\""
+        if DEBUG:
+            pprint(go_execution)
+        censorship_detect_app = subprocess.Popen(go_execution, shell=True, stdout=subprocess.PIPE,
+                                                 stderr=subprocess.PIPE)
+
+        censorship_detect_app.wait()
+        time.sleep(2)
+
+        with open(log_file, 'r') as fp:
+            line = fp.readline()
+            while line:
+                if "Censorship Detected" in line:
+                    return True
+                line = fp.readline()
+
+        return False
 
 
 def build_go_measurement_app():
+    """
+    Builds go measurement app to make sure the latest version is compiled
+    """
     process = subprocess.Popen("cd ../app && go build -o ../build/measurement -a .", shell=True, stdout=subprocess.PIPE,
                                stderr=subprocess.PIPE)
     process.wait()
@@ -95,69 +202,6 @@ def build_go_measurement_app():
     if process.returncode != 0:
         print("Error building go measurement app. Terminating...")
         exit(1)
-
-
-def detect_censorship_verify(session_id, config, pcap, local_port):
-    pcap_filepath = config.pcap_path + "/" + pcap
-    log_filepath = config.measurement_logs + "/" + session_id + ".log"
-
-    go_execution = "../build/measurement --config_file resources/config_china_http.yml" + \
-                   " --pcap " + pcap_filepath + \
-                   " --bpf " + "\"tcp and port " + str(local_port) + "\"" + \
-                   " --log-file \"" + log_filepath + "\""
-    if DEBUG:
-        pprint(go_execution)
-    censorship_detect_app = subprocess.Popen(go_execution, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-    censorship_detect_app.wait()
-    time.sleep(2)
-
-    with open(log_filepath, 'r') as fp:
-        line = fp.readline()
-        while line:
-            if "Censorship Detected" in line:
-                return True
-            line = fp.readline()
-
-    return False
-
-
-def censorship_request(port, ip, domain):
-    header = {
-        'Host': domain
-    }
-
-    count = 0
-    last_err = None
-
-    while count < MAX_TRIES:
-        s = requests.Session()
-        s.mount('http://', SourcePortAdapter(port + count))
-        #s.mount('https://', SourcePortAdapter(port + count))
-
-        try:
-            if DEBUG:
-                pprint("Making request: " + str(ip) + "|" + str(port + count) + "|" + str(domain) + "|" + str(header))
-            s.get("http://%s/" % ip, headers=header, timeout=5, allow_redirects=False)
-        except requests.exceptions.ConnectionError as e:
-            if e.__context__ is not None and e.__context__.__context__ is not None:
-                if isinstance(e.__context__.__context__, ConnectionResetError):
-                    if DEBUG:
-                        pprint("Connection Reset")
-                    # Censorship Detected
-                    s.close()
-                    return True, str(e.__context__.__context__)
-            last_err = str(e)
-        except Exception as e:
-            last_err = str(e)
-
-        if DEBUG:
-            pprint("Request Error:" + last_err)
-
-        time.sleep(1)
-        count += 1
-        s.close()
-    return False, last_err
 
 
 # Code from https://stackoverflow.com/questions/47202790/python-requests-how-to-specify-port-for-outgoing-traffic
@@ -176,11 +220,10 @@ class SourcePortAdapter(HTTPAdapter):
 def parse_args():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("input", help="Censorship Test Input File", action='store')
-    parser.add_argument("interface", help="Interface to listen on to capture packets", action='store')
-    parser.add_argument("results_file", help="Path to censorship results file", action='store')
-    parser.add_argument("--pcap-path", default="pcaps", help="Path to pcaps", action='store')
-    parser.add_argument("--measurement-logs", default="logs", help="Path to measurement logs", action='store')
+    parser.add_argument("--input", help="Censorship Test Input File", action='store', required=True)
+    parser.add_argument("--interface", help="Interface to listen on to capture packets", action='store', required=True)
+    parser.add_argument("--results-file", help="Path to store censorship results file", action='store', required=True)
+    parser.add_argument("--output-path", help="Path to store pcap and log files", action="store", default=None)
 
     config = parser.parse_args()
 
@@ -190,4 +233,4 @@ def parse_args():
 
 if __name__ == '__main__':
     config = parse_args()
-    detect_censorship(config)
+    main(config)

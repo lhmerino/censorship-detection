@@ -39,7 +39,7 @@ func (t *Stream) Accept(tcp *layers.TCP, ci gopacket.CaptureInfo, dir reassembly
 		censorshipDetected := (*t.measurements[i].Censor).DetectCensorship(t.measurementStorage[i])
 		if censorshipDetected == censor.NEW_DETECTED {
 			logger.Logger.Connection(&t.net, &t.transport, &t.contents)
-		} else if censorshipDetected == censor.OLD_DETECTED {
+		} else if censorshipDetected == censor.DETECTED {
 			logger.Logger.Info("[Censorship] Already Detected")
 		}
 	}

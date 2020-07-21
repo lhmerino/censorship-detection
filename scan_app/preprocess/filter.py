@@ -3,6 +3,9 @@ import json
 from pprint import pprint
 
 def main():
+    """
+    Group the IP addresses by ASN numbers and write the output in JSON format.
+    """
     ASN = {}
 
     with open('../resources/results_blocked_ip_site_country_asn.csv', mode='r') as csv_file:
@@ -21,7 +24,6 @@ def main():
 
     with open('China_ASNs', 'w') as outfile:
         json.dump(ASN, outfile, indent=4)
-
 
 
 if __name__ == '__main__':

@@ -64,7 +64,7 @@ func (c *China) DetectCensorship(someInterface interface{}) uint8 {//, net *gopa
 
 	// Check if censorship has already been triggered for this censor
 	if chinaStream.CensorshipDetected == true {
-		return OLD_DETECTED
+		return DETECTED
 	}
 
 	// Determine if censorship has been triggered for this stream (and censor)

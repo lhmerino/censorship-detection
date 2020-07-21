@@ -1,4 +1,3 @@
 build
-scan_app/pcaps
-scan_app/logs
+output
 other
