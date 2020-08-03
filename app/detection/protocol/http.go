@@ -2,7 +2,7 @@ package protocol
 
 import (
 	"fmt"
-	"github.com/google/gopacket"
+	"github.com/Kkevsterrr/gopacket"
 )
 
 type HTTP struct {

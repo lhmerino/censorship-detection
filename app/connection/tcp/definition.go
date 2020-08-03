@@ -2,8 +2,8 @@ package tcp
 
 import (
 	"breakerspace.cs.umd.edu/censorship/measurement/detection"
-	"bytes"
-	"github.com/google/gopacket"
+	"breakerspace.cs.umd.edu/censorship/measurement/detection/collector"
+	"github.com/Kkevsterrr/gopacket"
 	"sync"
 )
 
@@ -11,15 +11,20 @@ var MAX_CONTENT_LENGTH = 1000
 
 /* It's a connection (bidirectional) */
 type Stream struct {
-	// TCP State
+	// Parties in this connection
+	// (net with transport = stream unique identifier)
 	net, transport gopacket.Flow
 
 	// Applicable Measurements
-	measurements       []*detection.Measurement
-	measurementStorage map[int]interface{}
+	measurements       	[]*detection.Measurement
+	// Measurement related structs is stored as part of the stream struct
+	// so that they get "destroyed" when the stream gets destroyed
+	measurementStorage 	map[int]interface{}
 
-	// Contains the first X bytes of the TCP payload (reassembled)
-	contents bytes.Buffer
+	// Applicable Collectors
+	collectors			[]collector.Collector
+	// Collector related structs (same caveat as measurementStore)
+	collectorStorage 	map[int]interface{}
 
 	sync.Mutex
 }

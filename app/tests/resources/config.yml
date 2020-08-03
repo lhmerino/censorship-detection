@@ -27,6 +27,25 @@ protocol: # Protocol Specific Options
   tcp:
     allowmissinginit: true # Support streams without SYN/SYN+ACK/ACK sequence
 
+# Data Collectors
+collectors:
+  net: # Network Layer
+    - type: IP
+    - type: IPID
+    - type: TTL
+  tcp: # Transport Layer
+    - type: Ports
+    - type: Flags
+    - type: SeqNum
+    - type: Payload
+      options:
+        maxLength: 500
+        direction: server # server: client->sever | client: server->client
+    - type: Payload
+      options:
+        maxLength: 500
+        direction: client # server: client->sever | client: server->client
+
 measurements:
   - censor: China
     protocol: HTTP

@@ -5,7 +5,7 @@ import (
 	"breakerspace.cs.umd.edu/censorship/measurement/detection/censor"
 	"breakerspace.cs.umd.edu/censorship/measurement/detection/protocol"
 	"breakerspace.cs.umd.edu/censorship/measurement/utils/logger"
-	"github.com/google/gopacket"
+	"github.com/Kkevsterrr/gopacket"
 	"os"
 )
 
@@ -48,13 +48,13 @@ func NewMeasurement(censor *censor.Censor, protocol *protocol.Protocol, options 
 
 // SetupMeasurements :
 //	Dynamic Measurement Setup based on YAML config file
-func SetupMeasurements(cfg *config.Config) {
-	Measurements = make([]*Measurement, len(cfg.MeasurementConfigs))
-	for i, _ := range cfg.MeasurementConfigs {
-		protocolVar := ReadProtocolFromMeasurementConfig(&cfg.MeasurementConfigs[i])
-		censorVar := ReadCensorFromMeasurementConfig(&cfg.MeasurementConfigs[i])
+func SetupMeasurements(cfg *[]config.MeasurementConfig) {
+	Measurements = make([]*Measurement, len(*cfg))
+	for i, _ := range *cfg {
+		protocolVar := ReadProtocolFromMeasurementConfig(&(*cfg)[i])
+		censorVar := ReadCensorFromMeasurementConfig(&(*cfg)[i])
 
-		Measurements[i] = NewMeasurement(&censorVar, &protocolVar, &cfg.MeasurementConfigs[i].Options)
+		Measurements[i] = NewMeasurement(&censorVar, &protocolVar, &(*cfg)[i].Options)
 	}
 }
 

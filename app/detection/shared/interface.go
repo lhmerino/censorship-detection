@@ -1,23 +1,36 @@
 package shared
 
 import (
-	"github.com/google/gopacket"
-	"github.com/google/gopacket/layers"
-	"github.com/google/gopacket/reassembly"
+	"github.com/Kkevsterrr/gopacket"
+	"github.com/Kkevsterrr/gopacket/layers"
+	"github.com/Kkevsterrr/gopacket/reassembly"
 )
 
+// MainInterface :
+//	For configuration level structs
 type MainInterface interface {
-	// Get the name of the specific type (censor, protocol)
+	// GetName : Get the name of the specific type
 	GetName() string
 
-	// Determine if the new connection is relevant to the specific type (censor, protocol)
+	// RelevantNewConnection : Determine if the new connection is relevant to the specific type
 	RelevantNewConnection(net gopacket.Flow, transport gopacket.Flow) bool
 
-	// Get basic identifiable information on specific type
+	// GetBasicInfo : Get basic identifiable information on specific type
 	GetBasicInfo() string
 }
 
-type ProcessPacketInterface interface {
-	ProcessPacket(someInterface interface{}, tcp *layers.TCP, ci *gopacket.CaptureInfo,
+// StreamInterface : For stream level structs that only process information header information from the first packet
+type StreamInterface interface {
+	NewStream(net, transport *gopacket.Flow, tcp *layers.TCP) interface{}
+}
+
+// ProcessPacketHeaderInterface : For stream level structs that process header information from packets
+type ProcessPacketHeaderInterface interface {
+	ProcessPacketHeader(someInterface interface{}, packet *gopacket.Packet, tcp *layers.TCP, ci *gopacket.CaptureInfo,
 		dir *reassembly.TCPFlowDirection)
+}
+
+// ProcessPacketPayloadInterface : For stream level structs that process payload information from packets
+type ProcessPacketPayloadInterface interface {
+	ProcessPacketPayload(someInterface interface{}, sg *reassembly.ScatterGather, ac *reassembly.AssemblerContext)
 }
