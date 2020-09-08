@@ -31,7 +31,7 @@ func SetupLogging(cfg *config.Config) {
 		os.Exit(3)
 	} else if cfg.Logging.Output.Fd < 0 && cfg.Logging.Output.File != "" {
 		// File Output
-		fd, err := syscall.Open(cfg.Logging.Output.File, syscall.O_APPEND|syscall.O_CREAT|syscall.O_WRONLY, 644)
+		fd, err := syscall.Open(cfg.Logging.Output.File, syscall.O_APPEND|syscall.O_CREAT|syscall.O_WRONLY, 0644)
 		if err != nil {
 			_, _ = fmt.Fprintf(os.Stderr, "Failed to setup file logging: %d, %s\n", fd, err.Error())
 			os.Exit(3)
@@ -52,7 +52,7 @@ func SetupLogging(cfg *config.Config) {
 	Logger.Info("Logger started up...")
 }
 
-func commonSetup(cfg *config.Config) (*os.File, uint8){
+func commonSetup(cfg *config.Config) (*os.File, uint8) {
 	var file *os.File
 	if cfg.Logging.Output.Fd != -1 {
 		file = os.NewFile(uintptr(cfg.Logging.Output.Fd), "Custom")
