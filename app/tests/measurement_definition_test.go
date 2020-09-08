@@ -38,7 +38,7 @@ func TestBasicInfo(t *testing.T) {
 	detection.Measurements[1] = detection.NewMeasurement(censor.NewChina(), protocol.NewHTTPCustom(8080))
 
 	basicInfo := detection.GetBasicInfo(detection.Measurements)
-	expected := "HTTP on port 80 & HTTP on port 8080"
+	expected := "China/HTTP on port 80 & China/HTTP on port 8080"
 	if basicInfo != expected {
 		t.Errorf("Expected %s but got %s", expected, basicInfo)
 	}
