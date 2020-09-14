@@ -8,10 +8,10 @@ import (
 	"breakerspace.cs.umd.edu/censorship/measurement/detection/protocol"
 	"breakerspace.cs.umd.edu/censorship/measurement/utils/logger"
 	"fmt"
-	"github.com/google/gopacket"
-	"github.com/google/gopacket/layers"
-	"github.com/google/gopacket/pcap"
-	"github.com/google/gopacket/reassembly"
+	"github.com/Kkevsterrr/gopacket"
+	"github.com/Kkevsterrr/gopacket/layers"
+	"github.com/Kkevsterrr/gopacket/pcap"
+	"github.com/Kkevsterrr/gopacket/reassembly"
 	"os"
 	"os/signal"
 	"runtime"
@@ -117,7 +117,8 @@ func Run(options *Options, tcpOptions *tcp.Options) {
 			c := Context{
 				CaptureInfo: packet.Metadata().CaptureInfo,
 			}
-			assembler.AssembleWithContext(packet.NetworkLayer().NetworkFlow(), tcpLayer.(*layers.TCP), &c)
+
+			assembler.AssembleWithContext(packet.NetworkLayer().NetworkFlow(), &packet, tcpLayer.(*layers.TCP), &c)
 
 			// Time to flush or close connections
 			if count%*options.flush == 0 {
@@ -125,7 +126,6 @@ func Run(options *Options, tcpOptions *tcp.Options) {
 				ref := packet.Metadata().CaptureInfo.Timestamp
 				flushed, closed := assembler.FlushCloseOlderThan(ref.Add(time.Minute * -2))
 				logger.Logger.Debug("Forced flush: %d flushed, %d closed", flushed, closed)
-				//PrintMemUsage()
 			}
 		}
 		if done == 1 {
@@ -139,7 +139,6 @@ func Run(options *Options, tcpOptions *tcp.Options) {
 }
 
 func PrintMemUsage() {
-
 	fmt.Println("sizeof(stream)", unsafe.Sizeof(tcp.Stream{}))
 	fmt.Println("sizeof(RSTACKs)", unsafe.Sizeof(fingerprint.RSTACKs{}))
 	fmt.Println("sizeof(Measurement)", unsafe.Sizeof(detection.Measurement{}))

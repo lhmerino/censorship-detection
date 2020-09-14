@@ -6,7 +6,8 @@ import (
 	"os"
 )
 
-
+// Measurement Options :
+//	Definition of options for measurements
 type MeasurementOptions struct {
 	Direction bool `yaml:"direction"` // Used by Protocol
 }
@@ -18,6 +19,18 @@ type MeasurementConfig struct {
 	Protocol string `yaml:"protocol"`
 	Port uint16 `yaml:"port"`
 	Options MeasurementOptions `yaml:"options"`
+}
+
+// Collector Options : Definition of options for data collectors
+type CollectorOptions struct {
+	Direction string `yaml:"direction"` // Used by Payload (client, server)
+	MaxLength int `yaml:"maxLength"` // Used by Payload
+}
+
+// CollectorConfig : Collector representation in YAML file
+type CollectorConfig struct {
+	Type string `yaml:"type"`
+	Options CollectorOptions `yaml:"options"`
 }
 
 // Config :
@@ -57,6 +70,10 @@ type Config struct {
 		} `yaml:"http"`
 	} `yaml:"protocol"`
 	MeasurementConfigs [] MeasurementConfig `yaml:"measurements"`
+	Collectors struct {
+		Net [] CollectorConfig `yaml:"net"`
+		TCP [] CollectorConfig `yaml:"tcp"`
+	} `yaml:"collectors"`
 	Profile struct {
 		CPU struct {
 			Enabled bool `yaml:"enabled"`

@@ -3,10 +3,9 @@ package censor
 import (
 	"breakerspace.cs.umd.edu/censorship/measurement/config"
 	"breakerspace.cs.umd.edu/censorship/measurement/detection/censor/fingerprint"
-	"breakerspace.cs.umd.edu/censorship/measurement/utils/logger"
-	"github.com/google/gopacket"
-	"github.com/google/gopacket/layers"
-	"github.com/google/gopacket/reassembly"
+	"github.com/Kkevsterrr/gopacket"
+	"github.com/Kkevsterrr/gopacket/layers"
+	"github.com/Kkevsterrr/gopacket/reassembly"
 )
 
 // China Fingerprint 1: 3 RSTACKs + 1 RST
@@ -21,10 +20,6 @@ type China struct {
 type ChinaStream struct {
 	CensorshipDetected bool
 	RSTACK *fingerprint.RSTACKs
-}
-
-func NewChinaStream(RSTACK *fingerprint.RSTACKs) *ChinaStream {
-	return &ChinaStream{RSTACK: RSTACK, CensorshipDetected: false}
 }
 
 func NewChina(options *config.MeasurementOptions) *China {
@@ -43,35 +38,34 @@ func (c *China) GetBasicInfo() string {
 	return "China"
 }
 
-func (c *China) NewStream() interface{} {
-	logger.Logger.Debug("[Censor:China:New Stream] Function Call")
+func (c *China) NewStream(net, transport *gopacket.Flow, tcp *layers.TCP) interface{} {
 	rstACK := fingerprint.NewRSTACKs(c.Options.Direction)
-	return NewChinaStream(rstACK)
 
+	return NewChinaStream(rstACK)
 }
 
-func (c *China) ProcessPacket(someInterface interface{}, tcp *layers.TCP, ci *gopacket.CaptureInfo,
+func (c *China) ProcessPacketHeader(someInterface interface{}, packet *gopacket.Packet, tcp *layers.TCP, ci *gopacket.CaptureInfo,
 	dir *reassembly.TCPFlowDirection) {
-	logger.Logger.Debug("[Censor:China:Accept] Function Call")
 	chinaStream := someInterface.(*ChinaStream)
 
 	// Process Contents of Packet
 	chinaStream.RSTACK.ProcessPacket(tcp, dir)
 }
 
-func (c *China) DetectCensorship(someInterface interface{}) uint8 {//, net *gopacket.Flow, transport *gopacket.Flow, content *bytes.Buffer) bool {
+func (c *China) DetectCensorship(someInterface interface{}) uint8 {
 	chinaStream := someInterface.(*ChinaStream)
-
-	// Check if censorship has already been triggered for this censor
-	if chinaStream.CensorshipDetected == true {
-		return DETECTED
-	}
 
 	// Determine if censorship has been triggered for this stream (and censor)
 	if chinaStream.RSTACK.CensorshipTriggered() {
 		chinaStream.CensorshipDetected = true
-		return NEW_DETECTED
+		return DETECTED
 	}
 
 	return NOT_DETECTED
+}
+
+// --- China Stream Methods ---
+
+func NewChinaStream(RSTACK *fingerprint.RSTACKs) *ChinaStream {
+	return &ChinaStream{RSTACK: RSTACK, CensorshipDetected: false}
 }
