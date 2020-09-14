@@ -1,0 +1,79 @@
+# Config File
+
+## Logging Parameters
+logging:
+  level:
+    debug: true
+    verbose: true
+    info: true
+    quiet: false
+  output:
+    file: "logs"
+    fd: -1
+  type: "Print"
+  packet_hexdump: false
+
+## Packet Parameters
+packet:
+  input:
+    interface: # en0
+    pcapFile: testdata/tripwire-1597963966.pcap
+  filter:
+    BPF:
+  snaplen: # Snapshot Length
+  flush: 5
+
+protocol: # Protocol Specific Options
+  tcp:
+    allowmissinginit: true # Support streams without SYN/SYN+ACK/ACK sequence
+
+# Measurements
+measurements:
+  - censor: China
+    protocol: HTTP
+    port: 9999
+    options:
+      direction: false # Should packet direction be taken into account
+  - censor: China
+    protocol: HTTP
+    port: 80
+    options:
+      direction: false
+  - censor: China
+    protocol: HTTP
+    port: 7777
+
+# Data Collectors
+collectors:
+  net: # Network Layer
+    - type: IP
+    - type: IPID
+    - type: TTL
+  tcp: # Transport Layer
+    - type: Ports
+    - type: Flags
+    - type: SeqNum
+    - type: Payload
+      options:
+        maxLength: 500
+        direction: server # server: client->sever | client: server->client
+    - type: Payload
+      options:
+        maxLength: 500
+        direction: client # server: client->sever | client: server->client
+
+profile: # Performance Testing
+  cpu:
+    enabled: false
+    file: "cpu"
+    fd: # file descriptor
+  memory:
+    enabled: false
+    file: "mem"
+    fd:
+  httpServer:
+    enabled: false
+
+metrics:
+  netw: "tcp"
+  addr: ":9090"

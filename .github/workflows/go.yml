@@ -26,7 +26,7 @@ jobs:
       run: sudo apt-get update && sudo apt-get install libpcap-dev
    
     - name: Build
-      run: cd app && go build -v .
+      run: go build -v ./cmd...
 
     - name: Test
-      run: cd app/tests && go test -v .
+      run: go test -v ./...
