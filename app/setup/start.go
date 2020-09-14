@@ -5,6 +5,7 @@ import (
 	"breakerspace.cs.umd.edu/censorship/measurement/connection"
 	"breakerspace.cs.umd.edu/censorship/measurement/connection/tcp"
 	"breakerspace.cs.umd.edu/censorship/measurement/detection"
+	"breakerspace.cs.umd.edu/censorship/measurement/detection/collector"
 	"breakerspace.cs.umd.edu/censorship/measurement/utils/logger"
 	"fmt"
 	"log"
@@ -28,8 +29,12 @@ func StartConfiguration(cfg *config.Config) (*connection.Options, *tcp.Options, 
 	}
 
 	// Setup Measurements
-	detection.SetupMeasurements(cfg)
+	detection.SetupMeasurements(&cfg.MeasurementConfigs)
 	logger.Logger.Info("Measurements: %s", detection.GetBasicInfo(detection.Measurements))
+
+	// Setup Collectors
+	collector.SetupCollectors(cfg)
+	logger.Logger.Info("Collectors: %s", collector.GetBasicInfo(collector.Collectors))
 
 	// Construct BPF Filter (if not specified in arguments) to only
 	// select flows that are relevant to the measurements created

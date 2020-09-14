@@ -9,12 +9,14 @@ import (
 )
 
 // Config Parameters
-var configFile = flag.String("config_file", "app/config/config.yml", "Config file location")
+var configFile = flag.String("config-file", "app/config/config.yml", "Config file location")
 
 var pcapFile = flag.String("pcap", "", "PCAP file")
 var iface = flag.String("iface", "", "Interface to get packets from")
+var logFile = flag.String("log-file", "", "Path to log file")
 
 var portFirstMeasurement = flag.Int("port", -1, "Override Port for first Measurement")
+var BPFFilter = flag.String("bpf", "", "Override BPFFilter")
 
 func main() {
 	// Parse arguments
@@ -39,9 +41,18 @@ func main() {
 func overrideArgs(cfg *config.Config) {
 	if *pcapFile != "" {
 		cfg.Packet.Input.PcapFile = *pcapFile
-	} else if *iface != "" {
+	}
+	if *iface != "" {
 		cfg.Packet.Input.Interface = *iface
-	} else if *portFirstMeasurement != -1 {
+	}
+	if *portFirstMeasurement != -1 {
 		cfg.MeasurementConfigs[0].Port = uint16(*portFirstMeasurement)
+	}
+	if *BPFFilter != "" {
+		cfg.Packet.Filter.BPF = *BPFFilter
+	}
+	if *logFile != "" {
+		cfg.Logging.Output.File = *logFile
+		cfg.Logging.Output.Fd = -1
 	}
 }

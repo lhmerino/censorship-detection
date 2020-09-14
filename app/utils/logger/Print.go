@@ -2,10 +2,9 @@ package logger
 
 import (
 	"breakerspace.cs.umd.edu/censorship/measurement/config"
-	"bytes"
-	"encoding/hex"
+	"breakerspace.cs.umd.edu/censorship/measurement/utils/logger/data"
 	"fmt"
-	"github.com/google/gopacket"
+	"github.com/Kkevsterrr/gopacket"
 	"os"
 )
 
@@ -43,6 +42,13 @@ func (l *Print) Error(s string, a ...interface{}) {
 	}
 }
 
-func (l *Print) Connection(net *gopacket.Flow, transport *gopacket.Flow, content *bytes.Buffer) {
-	_, _ = fmt.Fprintf(l.file, "%s %s: Censorship Detected\n%s", net, transport, hex.Dump(content.Bytes()))
+func (l *Print) Connection(net *gopacket.Flow, transport *gopacket.Flow, collectedData []*data.Array) {
+	collectedDataString := make([]string, 0)
+
+	for i, _ := range collectedData {
+		oneCollectData := fmt.Sprintf("%s:%s\n", collectedData[i].Description, collectedData[i].Value)
+		collectedDataString = append(collectedDataString, oneCollectData)
+	}
+
+	_, _ = fmt.Fprintf(l.file, "%s %s: Censorship Detected\n%s\n", net, transport, collectedDataString)
 }

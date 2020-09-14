@@ -1,14 +1,14 @@
 package tests
 
 import (
-	"breakerspace.cs.umd.edu/censorship/measurement/detection/fingerprint"
-	"github.com/google/gopacket/layers"
-	"github.com/google/gopacket/reassembly"
+	"breakerspace.cs.umd.edu/censorship/measurement/detection/censor/fingerprint"
+	"github.com/Kkevsterrr/gopacket/layers"
+	"github.com/Kkevsterrr/gopacket/reassembly"
 	"testing"
 )
 
 func TestRSTACKs(t *testing.T) {
-	RstAck := fingerprint.NewRSTACKs()
+	RstAck := fingerprint.NewRSTACKs(true)
 
 	tcp := &layers.TCP{
 		SYN: true,

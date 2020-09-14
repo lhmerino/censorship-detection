@@ -16,7 +16,7 @@ logging:
 ## Packet Parameters
 packet:
   input:
-    interface:
+    interface: # en0
     pcapFile: other/pcaps/server_side_http_luke.pcap
   filter:
     BPF:
@@ -27,22 +27,46 @@ protocol: # Protocol Specific Options
   tcp:
     allowmissinginit: true # Support streams without SYN/SYN+ACK/ACK sequence
 
+# Measurements
 measurements:
   - censor: China
     protocol: HTTP
     port: 9999
+    options:
+      direction: false # Should packet direction be taken into account
   - censor: China
     protocol: HTTP
     port: 80
+    options:
+      direction: false
   - censor: China
     protocol: HTTP
     port: 7777
+
+# Data Collectors
+collectors:
+  net: # Network Layer
+    - type: IP
+    - type: IPID
+    - type: TTL
+  tcp: # Transport Layer
+    - type: Ports
+    - type: Flags
+    - type: SeqNum
+    - type: Payload
+      options:
+        maxLength: 500
+        direction: server # server: client->sever | client: server->client
+    - type: Payload
+      options:
+        maxLength: 500
+        direction: client # server: client->sever | client: server->client
 
 profile: # Performance Testing
   cpu:
     enabled: false
     file: "cpu"
-    fd:
+    fd: # file descriptor
   memory:
     enabled: false
     file: "mem"

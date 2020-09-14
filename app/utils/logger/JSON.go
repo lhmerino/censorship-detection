@@ -2,10 +2,10 @@ package logger
 
 import (
 	"breakerspace.cs.umd.edu/censorship/measurement/config"
-	"bytes"
+	"breakerspace.cs.umd.edu/censorship/measurement/utils/logger/data"
 	"encoding/json"
 	"fmt"
-	"github.com/google/gopacket"
+	"github.com/Kkevsterrr/gopacket"
 	"os"
 )
 
@@ -25,6 +25,12 @@ func NewJSON(cfg *config.Config) *JSON {
 type logStruct struct {
 	Level   uint8
 	Message string
+}
+
+type logCollectedData struct {
+	Net string
+	Transport string
+	Data []*data.Array
 }
 
 func (J JSON) Debug(s string, a ...interface{}) {
@@ -63,10 +69,18 @@ func (J JSON) Error(s string, a ...interface{}) {
 	_, _ = fmt.Fprintln(J.file, string(log))
 }
 
-func (J JSON) Connection(net *gopacket.Flow, transport *gopacket.Flow, content *bytes.Buffer) {
-	log, _ := json.Marshal(&logStruct{
-		Level:   0,
-		Message: fmt.Sprintf("%s %s: Censorship Detected\n%s", net, transport, content.Bytes()),
+func (J JSON) Connection(net *gopacket.Flow, transport *gopacket.Flow, collectedData []*data.Array) {
+	fmt.Printf("Hello")
+	log, err := json.Marshal(&logCollectedData{
+		Net: net.String(),
+		Transport: transport.String(),
+		Data: collectedData,
 	})
+	if err != nil {
+		fmt.Printf("Error")
+	}
+
+	fmt.Printf("Hello2\n" + net.String() + transport.String())
+	fmt.Printf(string(log) + "\n")
 	_, _ = fmt.Fprintln(J.file, string(log))
 }

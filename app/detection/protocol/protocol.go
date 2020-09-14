@@ -5,7 +5,7 @@ import (
 )
 
 type Protocol interface {
-	shared.SharedInterface
+	shared.MainInterface
 
 	// BPF filter for protocol
 	GetBPFFilter() string

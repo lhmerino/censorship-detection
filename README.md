@@ -1,5 +1,8 @@
 # Censorship Detection
 
+Status Badges  
+![Go](https://github.com/Kkevsterrr/censorship-detection/workflows/Go/badge.svg)
+
 ## App
 
 Bulk of the application that monitors live traffic and detects censorship flows
