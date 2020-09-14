@@ -18,7 +18,6 @@ DEBUG = False
 # Censored Query: curl -H "Host: groups.google.com" 120.77.156.227
 # Censored Query: curl -H "Host: google.com.sa" 114.55.249.66
 
-
 def main(config):
     with open(config.input) as file:
         ASN_IPs = json.load(file)
@@ -31,7 +30,6 @@ def main(config):
     if not os.path.exists(output_path):
         os.makedirs(output_path)
 
-    count = 1
     results = {}
     for ASN in ASN_IPs:
         for data in ASN_IPs[ASN]:
@@ -45,8 +43,6 @@ def main(config):
                 'ASN': ASN,
                 'Results': detect_results
             }
-
-            count += 1
 
     with open(config.results_file, 'w') as outfile:
         json.dump(results, outfile, indent=4)
@@ -83,8 +79,10 @@ class CensorshipTest:
             censored, err = CensorshipTest.request(self.ip, self.domain, local_port)
 
             # Close tcpdump
-            time.sleep(5)  # Buffer for new packets
+            time.sleep(10)  # Buffer for new packets
             pcap_capture_process.send_signal(subprocess.signal.SIGTERM)
+            subprocess.Popen("sudo pkill -f tcpdump", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
             time.sleep(3)
 
             # Compare with go measurement
@@ -159,6 +157,9 @@ class CensorshipTest:
         except Exception as e:
             err = str(e)
 
+        if DEBUG:
+            pprint(err)
+
         return censored, err
 
     @staticmethod
@@ -167,7 +168,7 @@ class CensorshipTest:
         Runs the go measurement app on the pcap generated from the
         HTTP request and returns whether Censorship was detected.
         """
-        go_execution = "../build/measurement --config_file resources/config_china_http.yml" + \
+        go_execution = "../build/measurement --config-file resources/config_china_http.yml" + \
                        " --pcap " + pcap_file + \
                        " --bpf " + "\"tcp and port " + str(local_port) + "\"" + \
                        " --log-file \"" + log_file + "\""
@@ -193,7 +194,7 @@ def build_go_measurement_app():
     """
     Builds go measurement app to make sure the latest version is compiled
     """
-    process = subprocess.Popen("cd ../app && go build -o ../build/measurement -a .", shell=True, stdout=subprocess.PIPE,
+    process = subprocess.Popen("cd ../app && /usr/local/go/bin/go build -o ../build/measurement -a .", shell=True, stdout=subprocess.PIPE,
                                stderr=subprocess.PIPE)
     process.wait()
     if DEBUG:
