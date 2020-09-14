@@ -48,7 +48,7 @@ func (p *Flags) NewStream(net, transport *gopacket.Flow, tcp *layers.TCP) interf
 
 // ProcessPacketHeader : Appends flags for packet to FlagsStream
 func (p *Flags) ProcessPacketHeader(someInterface interface{}, packet *gopacket.Packet, tcp *layers.TCP,
-								    ci *gopacket.CaptureInfo, dir *reassembly.TCPFlowDirection) {
+	ci *gopacket.CaptureInfo, dir *reassembly.TCPFlowDirection) {
 	flagsStream := someInterface.(*FlagsStream)
 
 	flagsStream.AppendFlags(tcp)
@@ -82,7 +82,6 @@ func (p *FlagsStream) GetData() []string {
 	return p.flags
 }
 
-
 // convertTCPFlagsToString :
 //	Checks if flag is SET and replaces with one
 //	letter character representing that flag
@@ -106,6 +105,15 @@ func convertTCPFlagsToString(tcp *layers.TCP) string {
 	}
 	if tcp.URG {
 		flags += "U"
+	}
+	if tcp.CWR {
+		flags += "C"
+	}
+	if tcp.ECE {
+		flags += "E"
+	}
+	if tcp.NS {
+		flags += "N"
 	}
 
 	return flags

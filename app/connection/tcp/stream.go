@@ -104,5 +104,7 @@ func (t *Stream) Destroy() {
 		collectedData[i] = t.collectors[i].GetData(t.collectorStorage[i])
 	}
 
-	logger.Logger.Connection(&t.net, &t.transport, collectedData)
+	if censorshipDetected == true {
+		logger.Logger.Connection(&t.net, &t.transport, collectedData)
+	}
 }
