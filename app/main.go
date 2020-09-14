@@ -9,7 +9,7 @@ import (
 )
 
 // Config Parameters
-var configFile = flag.String("config_file", "app/config/config.yml", "Config file location")
+var configFile = flag.String("config-file", "app/config/config.yml", "Config file location")
 
 var pcapFile = flag.String("pcap", "", "PCAP file")
 var iface = flag.String("iface", "", "Interface to get packets from")

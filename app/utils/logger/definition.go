@@ -2,9 +2,9 @@ package logger
 
 import (
 	"breakerspace.cs.umd.edu/censorship/measurement/config"
-	"bytes"
+	"breakerspace.cs.umd.edu/censorship/measurement/utils/logger/data"
 	"fmt"
-	"github.com/google/gopacket"
+	"github.com/Kkevsterrr/gopacket"
 	"os"
 	"syscall"
 )
@@ -22,7 +22,7 @@ type Logging interface {
 	Error(s string, a ...interface{})
 
 	// Connection - specific arguments
-	Connection(net *gopacket.Flow, transport *gopacket.Flow, content *bytes.Buffer)
+	Connection(net *gopacket.Flow, transport *gopacket.Flow, collectedData []*data.Array)
 }
 
 func SetupLogging(cfg *config.Config) {
