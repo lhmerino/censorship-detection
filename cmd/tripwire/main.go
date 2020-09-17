@@ -11,7 +11,6 @@ import (
 	"breakerspace.cs.umd.edu/censorship/measurement/metrics"
 	"breakerspace.cs.umd.edu/censorship/measurement/setup"
 	"github.com/pkg/errors"
-	dto "github.com/prometheus/client_model/go"
 )
 
 var (
@@ -55,11 +54,7 @@ func main() {
 
 	// Print metrics
 	if cfg.Metrics != nil {
-		var m = &dto.Metric{}
-		if err := connection.PacketsCount.Write(m); err != nil {
-			log.Fatal(err)
-		}
-		log.Printf("Processed %v packets", m.Counter.GetValue())
+		metrics.Print()
 	}
 }
 

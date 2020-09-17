@@ -1,6 +1,8 @@
 package metrics
 
 import (
+	"breakerspace.cs.umd.edu/censorship/measurement/connection/tcp"
+	"breakerspace.cs.umd.edu/censorship/measurement/detection"
 	"fmt"
 	"log"
 	"net"
@@ -13,6 +15,8 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+
+	dto "github.com/prometheus/client_model/go"
 )
 
 var (
@@ -66,4 +70,35 @@ func Start(metricsList net.Listener) {
 			log.Fatal(err)
 		}
 	}
+}
+
+func Print() {
+	var m = &dto.Metric{}
+	if err := connection.PacketsCount.Write(m); err != nil {
+		log.Fatal(err)
+	}
+	log.Printf("Global: Processed %v packets", m.Counter.GetValue())
+
+	if err := tcp.StreamsCount.Write(m); err != nil {
+		log.Fatal(err)
+	}
+	log.Printf("Global: Processed %v streams", m.Counter.GetValue())
+
+	if err := tcp.DisruptedStreamsCount.Write(m); err != nil {
+		log.Fatal(err)
+	}
+	log.Printf("Global: Processed %v disrupted streams", m.Counter.GetValue())
+
+	for i := 0; i < len(detection.Measurements); i++ {
+		name := (*detection.Measurements[i].Censor).GetBasicInfo() + "-" + (*detection.Measurements[i].Protocol).GetBasicInfo()
+		if err := detection.Measurements[i].StreamsCount.Write(m); err != nil {
+			log.Fatal(err)
+		}
+		log.Printf("%s: Processed %v streams", name, m.Counter.GetValue())
+		if err := detection.Measurements[i].DisruptedStreamsCount.Write(m); err != nil {
+			log.Fatal(err)
+		}
+		log.Printf("%s: Processed %v disrupted streams", name, m.Counter.GetValue())
+	}
+
 }

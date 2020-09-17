@@ -13,6 +13,19 @@ import (
 	"github.com/Kkevsterrr/gopacket"
 	"github.com/Kkevsterrr/gopacket/layers"
 	"github.com/Kkevsterrr/gopacket/reassembly"
+	"github.com/prometheus/client_golang/prometheus"
+)
+
+var (
+	StreamsCount = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "streams_count",
+		Help: "Number of streams observed.",
+	})
+
+	DisruptedStreamsCount = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "disrupted_streams_count",
+		Help: "Number of disrupted streams observed.",
+	})
 )
 
 // Accept :
@@ -90,7 +103,13 @@ func (t *Stream) Destroy() {
 	censorshipDetected := false
 	for i := 0; i < len(t.measurements); i++ {
 		censorCensorshipDetected := (*t.measurements[i].Censor).DetectCensorship(t.measurementStorage[i])
+
+		// Measurement Stream Count
+		t.measurements[i].StreamsCount.Inc()
+
 		if censorCensorshipDetected == censor.DETECTED {
+			// Measurement Disrupted Stream Count
+			t.measurements[i].DisruptedStreamsCount.Inc()
 			censorshipDetected = true
 		}
 	}
@@ -102,7 +121,11 @@ func (t *Stream) Destroy() {
 		collectedData[i] = t.collectors[i].GetData(t.collectorStorage[i])
 	}
 
+	// Global Stream Count
+	StreamsCount.Inc()
 	if censorshipDetected {
+		// Global Disrupted Streams Count
+		DisruptedStreamsCount.Inc()
 		logger.Logger.Connection(&t.net, &t.transport, collectedData)
 	}
 }

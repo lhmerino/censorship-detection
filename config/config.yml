@@ -21,7 +21,7 @@ packet:
   filter:
     BPF:
   snaplen: # Snapshot Length
-  flush: 5
+  flush: 50
 
 protocol: # Protocol Specific Options
   tcp:
@@ -42,6 +42,15 @@ measurements:
   - censor: China
     protocol: HTTP
     port: 7777
+  - censor: China
+    protocol: SMTP
+    port: 25
+  - censor: China
+    protocol: HTTPS
+    port: 443
+  - censor: China
+    protocol: DNS
+    port: 53
 
 # Data Collectors
 collectors:

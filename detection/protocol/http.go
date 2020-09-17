@@ -11,11 +11,7 @@ type HTTP struct {
 	port uint16
 }
 
-func NewHTTP() *HTTP {
-	return &HTTP{port: 80}
-}
-
-func NewHTTPCustom(port uint16) *HTTP {
+func NewHTTP(port uint16) *HTTP {
 	return &HTTP{port: port}
 }
 
