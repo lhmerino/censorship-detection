@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestBPFFilter(t *testing.T) {
+func TestUnitBPFFilter(t *testing.T) {
 	var measurementConfigs = make([]config.MeasurementConfig, 0)
 	measurementConfigs = append(measurementConfigs,
 		config.MeasurementConfig{
@@ -59,7 +59,7 @@ func TestBPFFilter(t *testing.T) {
 	}
 }
 
-func TestBasicInfo(t *testing.T) {
+func TestUnitBasicInfo(t *testing.T) {
 	var measurementConfigs = make([]config.MeasurementConfig, 0)
 
 	measurementConfigs = append(measurementConfigs,
@@ -90,7 +90,7 @@ func TestBasicInfo(t *testing.T) {
 	}
 }
 
-func TestRelevantNewConnection(t *testing.T) {
+func TestUnitRelevantNewConnection(t *testing.T) {
 	var measurementConfigs = make([]config.MeasurementConfig, 0)
 
 	measurementConfigs = append(measurementConfigs,

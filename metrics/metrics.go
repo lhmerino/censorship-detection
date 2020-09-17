@@ -19,7 +19,7 @@ var (
 	buildInfo = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "build_info",
-			Help: "A metric with a constant '1' value labeled by version, and goversion from which tls-1000 was built.",
+			Help: "A metric with a constant '1' value labeled by version, and goversion from which tripwire was built.",
 		},
 		[]string{"version", "goversion"},
 	)
