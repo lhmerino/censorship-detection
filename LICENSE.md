@@ -1,4 +1,4 @@
-Copyright (c) 2020, University of Maryland - College Park, Breakerspace Lab
+Copyright (c) 2020, University of Maryland - College Park, Breakerspace Lab  
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
