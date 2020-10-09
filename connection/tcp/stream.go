@@ -127,5 +127,7 @@ func (t *Stream) Destroy() {
 		// Global Disrupted Streams Count
 		DisruptedStreamsCount.Inc()
 		logger.Logger.Connection(&t.net, &t.transport, collectedData)
+	} else {
+		logger.Logger.Debug("No intervention markers: %s:%s", t.net.String(), t.transport.String())
 	}
 }

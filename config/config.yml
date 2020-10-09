@@ -17,9 +17,9 @@ logging:
 packet:
   input:
     interface: # en0
-    pcapFile: testdata/tripwire-1597963966.pcap
+    pcapFile: tests/test1/tripwire-1597963966.pcap
   filter:
-    BPF:
+    BPF: "tcp"
   snaplen: # Snapshot Length
   flush: 50
 
@@ -33,24 +33,32 @@ measurements:
     protocol: HTTP
     port: 9999
     options:
-      direction: false # Should packet direction be taken into account
+      direction: false # Should packet direction be taken into account - Default false
   - censor: China
     protocol: HTTP
     port: 80
     options:
-      direction: false
+      direction: true
   - censor: China
     protocol: HTTP
     port: 7777
+    options:
+      direction: true
   - censor: China
     protocol: SMTP
     port: 25
+    options:
+      direction: true
   - censor: China
     protocol: HTTPS
     port: 443
+    options:
+      direction: true
   - censor: China
     protocol: DNS
     port: 53
+    options:
+      direction: true
 
 # Data Collectors
 collectors:

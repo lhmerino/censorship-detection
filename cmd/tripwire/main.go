@@ -2,15 +2,11 @@ package main
 
 import (
 	"flag"
-	"log"
-	"net"
 	_ "net/http/pprof"
 
 	"breakerspace.cs.umd.edu/censorship/measurement/config"
 	"breakerspace.cs.umd.edu/censorship/measurement/connection"
-	"breakerspace.cs.umd.edu/censorship/measurement/metrics"
 	"breakerspace.cs.umd.edu/censorship/measurement/setup"
-	"github.com/pkg/errors"
 )
 
 var (
@@ -35,27 +31,11 @@ func main() {
 	// Configure Application
 	packetOptions, tcpOptions, cpuFile, memFile := setup.StartConfiguration(&cfg)
 
-	// Start metrics
-	if cfg.Metrics != nil {
-		netw, addr := cfg.Metrics.Network(), cfg.Metrics.String()
-		metricsListener, err := net.Listen(netw, addr)
-		err = errors.Wrapf(err, "metrics, netw=%v, addr=%v", netw, addr)
-		if err != nil {
-			log.Fatal(err)
-		}
-		go metrics.Start(metricsListener)
-	}
-
 	// Run program
 	connection.Run(packetOptions, tcpOptions)
 
 	// Cleanup program
-	setup.EndConfiguration(cpuFile, memFile)
-
-	// Print metrics
-	if cfg.Metrics != nil {
-		metrics.Print()
-	}
+	setup.EndConfiguration(&cfg, cpuFile, memFile)
 }
 
 func overrideArgs(cfg *config.Config) {

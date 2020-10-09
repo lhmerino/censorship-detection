@@ -3,6 +3,7 @@ package metrics
 import (
 	"breakerspace.cs.umd.edu/censorship/measurement/connection/tcp"
 	"breakerspace.cs.umd.edu/censorship/measurement/detection"
+	"breakerspace.cs.umd.edu/censorship/measurement/utils/logger"
 	"fmt"
 	"log"
 	"net"
@@ -77,28 +78,43 @@ func Print() {
 	if err := connection.PacketsCount.Write(m); err != nil {
 		log.Fatal(err)
 	}
-	log.Printf("Global: Processed %v packets", m.Counter.GetValue())
+	str := fmt.Sprintf("Global: Processed %v packets", m.Counter.GetValue())
+	log.Printf(str)
+	logger.Logger.Info(str)
 
 	if err := tcp.StreamsCount.Write(m); err != nil {
 		log.Fatal(err)
 	}
-	log.Printf("Global: Processed %v streams", m.Counter.GetValue())
+	str = fmt.Sprintf("Global: Processed %v streams", m.Counter.GetValue())
+	log.Printf(str)
+	logger.Logger.Info(str)
 
 	if err := tcp.DisruptedStreamsCount.Write(m); err != nil {
 		log.Fatal(err)
 	}
-	log.Printf("Global: Processed %v disrupted streams", m.Counter.GetValue())
+	str = fmt.Sprintf("Global: Processed %v disrupted streams", m.Counter.GetValue())
+	log.Printf(str)
+	logger.Logger.Info(str)
 
+	// Measurements
 	for i := 0; i < len(detection.Measurements); i++ {
 		name := (*detection.Measurements[i].Censor).GetBasicInfo() + "-" + (*detection.Measurements[i].Protocol).GetBasicInfo()
+
+		// Total Streams
 		if err := detection.Measurements[i].StreamsCount.Write(m); err != nil {
 			log.Fatal(err)
 		}
-		log.Printf("%s: Processed %v streams", name, m.Counter.GetValue())
+		str = fmt.Sprintf("%s: Processed %v streams", name, m.Counter.GetValue())
+		log.Printf(str)
+		logger.Logger.Info(str)
+
+		// Disrupted Streams
 		if err := detection.Measurements[i].DisruptedStreamsCount.Write(m); err != nil {
 			log.Fatal(err)
 		}
-		log.Printf("%s: Processed %v disrupted streams", name, m.Counter.GetValue())
+		str = fmt.Sprintf("%s: Processed %v disrupted streams", name, m.Counter.GetValue())
+		log.Printf(str)
+		logger.Logger.Info(str)
 	}
 
 }

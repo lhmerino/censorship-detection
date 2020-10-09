@@ -1,0 +1,21 @@
+Logger started up...
+Measurements: China/HTTP on port 9999 & China/HTTP on port 80 & China/HTTP on port 7777 & China/SMTP on port 25 & China/HTTPS on port 443 & China/DNS on port 53
+Collectors: [Net - IP]|[NET - IPID]|[NET - TTL]|[TCP - Ports]|[TCP - Flags]|[TCP - SeqNum]|[TCP - Payload] Max Length: 500 |Direction: C->S|[TCP - Payload] Max Length: 500 |Direction: S->C
+BPF Filter: tcp
+Read from pcap: "tests/test1/tripwire-1597963966.pcap"
+Handle open failure: tests/test1/tripwire-1597963966.pcap: No such file or directory (tests/test1/tripwire-1597963966.pcap: No such file or directory,tests/test1/tripwire-1597963966.pcap: No such file or directory)
+Global: Processed 0 packets
+Global: Processed 0 streams
+Global: Processed 0 disrupted streams
+China-HTTP on port 9999: Processed 0 streams
+China-HTTP on port 9999: Processed 0 disrupted streams
+China-HTTP on port 80: Processed 0 streams
+China-HTTP on port 80: Processed 0 disrupted streams
+China-HTTP on port 7777: Processed 0 streams
+China-HTTP on port 7777: Processed 0 disrupted streams
+China-SMTP on port 25: Processed 0 streams
+China-SMTP on port 25: Processed 0 disrupted streams
+China-HTTPS on port 443: Processed 0 streams
+China-HTTPS on port 443: Processed 0 disrupted streams
+China-DNS on port 53: Processed 0 streams
+China-DNS on port 53: Processed 0 disrupted streams

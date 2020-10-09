@@ -6,9 +6,12 @@ import (
 	"breakerspace.cs.umd.edu/censorship/measurement/connection/tcp"
 	"breakerspace.cs.umd.edu/censorship/measurement/detection"
 	"breakerspace.cs.umd.edu/censorship/measurement/detection/collector"
+	"breakerspace.cs.umd.edu/censorship/measurement/metrics"
 	"breakerspace.cs.umd.edu/censorship/measurement/utils/logger"
 	"fmt"
+	"github.com/pkg/errors"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"runtime"
@@ -65,6 +68,17 @@ func StartConfiguration(cfg *config.Config) (*connection.Options, *tcp.Options, 
 		go func() {
 			log.Println(http.ListenAndServe("localhost:6060", nil))
 		}()
+	}
+
+	// Start metrics
+	if cfg.Metrics != nil {
+		netw, addr := cfg.Metrics.Network(), cfg.Metrics.String()
+		metricsListener, err := net.Listen(netw, addr)
+		err = errors.Wrapf(err, "metrics, netw=%v, addr=%v", netw, addr)
+		if err != nil {
+			log.Fatal(err)
+		}
+		go metrics.Start(metricsListener)
 	}
 
 	return packetOptions, tcpOptions, cpuFile, memFile

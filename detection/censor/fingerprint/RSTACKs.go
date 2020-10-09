@@ -22,8 +22,12 @@ func (r *RSTACKs) ProcessPacket(tcp *layers.TCP, dir *reassembly.TCPFlowDirectio
 func (r *RSTACKs) CensorshipTriggered() bool {
 	if bits.HasBit8(r.Flags, 0) && // PSH
 		bits.HasBit8(r.Flags, 1) && // First RST-ACK
+		bits.HasBit8(r.Flags, 4) { // First RST
+		return true
+	} else if bits.HasBit8(r.Flags, 0) && // PSH
+		bits.HasBit8(r.Flags, 1) && // First RST-ACK
 		bits.HasBit8(r.Flags, 2) && // Second RST-ACK
-		bits.HasBit8(r.Flags, 4) {
+		bits.HasBit8(r.Flags, 3) { // Third RST-ACK
 		return true
 	}
 
