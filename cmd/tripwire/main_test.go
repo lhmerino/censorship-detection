@@ -5,12 +5,22 @@ import (
 	"golang.org/x/xerrors"
 	"io/ioutil"
 	"os"
+	"sync"
 	"testing"
 
 	"breakerspace.cs.umd.edu/censorship/measurement/config"
 	"breakerspace.cs.umd.edu/censorship/measurement/connection"
 	"breakerspace.cs.umd.edu/censorship/measurement/setup"
 )
+
+var seqMutex sync.Mutex
+
+func lockMutex() func() {
+	seqMutex.Lock()
+	return func() {
+		seqMutex.Unlock()
+	}
+}
 
 func TestUnitRun1(t *testing.T) {
 	cfg := config.ReadConfig("tests/test1/config.yml")
@@ -33,6 +43,7 @@ func TestUnitRun2(t *testing.T) {
 }
 
 func TestUnitRun3(t *testing.T) {
+
 	cfg := config.ReadConfig("tests/test3/config.yml")
 
 	err := mainHelper(&cfg, "tests/test3/expected_test.log", 297)
@@ -43,6 +54,8 @@ func TestUnitRun3(t *testing.T) {
 }
 
 func mainHelper(cfg *config.Config, expectedLogFile string, lastBytes int) error {
+	defer lockMutex()()
+
 	// Truncate log file
 	logFile, err := os.OpenFile(cfg.Logging.Output.File, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0666)
 	if err != nil {
@@ -50,11 +63,11 @@ func mainHelper(cfg *config.Config, expectedLogFile string, lastBytes int) error
 	}
 	logFile.Close()
 
-	packetOptions, tcpOptions, cpuFile, memFile := setup.StartConfiguration(cfg)
+	packetOptions, tcpOptions, cpuFile, memFile, server := setup.StartConfiguration(cfg)
 
 	connection.Run(packetOptions, tcpOptions)
 
-	setup.EndConfiguration(cfg, cpuFile, memFile)
+	setup.EndConfiguration(cfg, cpuFile, memFile, server)
 
 	contents, err := ioutil.ReadFile(cfg.Logging.Output.File)
 	if err != nil {

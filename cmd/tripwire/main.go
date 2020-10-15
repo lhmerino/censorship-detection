@@ -29,13 +29,13 @@ func main() {
 	overrideArgs(&cfg)
 
 	// Configure Application
-	packetOptions, tcpOptions, cpuFile, memFile := setup.StartConfiguration(&cfg)
+	packetOptions, tcpOptions, cpuFile, memFile, server := setup.StartConfiguration(&cfg)
 
 	// Run program
 	connection.Run(packetOptions, tcpOptions)
 
 	// Cleanup program
-	setup.EndConfiguration(&cfg, cpuFile, memFile)
+	setup.EndConfiguration(&cfg, cpuFile, memFile, server)
 }
 
 func overrideArgs(cfg *config.Config) {

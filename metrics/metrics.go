@@ -33,11 +33,11 @@ var (
 )
 
 // metrics registers metrics with Prometheus and starts the server.
-func Start(metricsList net.Listener) {
+func Start(server *http.Server, metricsList net.Listener) {
 	buildInfo.WithLabelValues(Version, GoVersion).Set(1)
 
 	registry := []prometheus.Collector{
-		buildInfo, connection.PacketsCount,
+		buildInfo, connection.PacketsCount, tcp.StreamsCount, tcp.DisruptedStreamsCount,
 	}
 
 	for i, coll := range registry {
@@ -60,13 +60,13 @@ func Start(metricsList net.Listener) {
 		fmt.Fprintf(w, "Version: %s, GoVersion: %s", Version, GoVersion)
 	})
 
-	server := http.Server{
-		Handler: mux,
-	}
+	server.Handler = mux
 
 	if err := server.Serve(metricsList); err != nil {
 		if strings.Contains(err.Error(), "closed network connection") {
 			log.Println("terminating metrics listener")
+		} else if strings.Contains(err.Error(), "Server closed") {
+			log.Println("http prometheus server closed")
 		} else {
 			log.Fatal(err)
 		}

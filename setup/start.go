@@ -18,7 +18,7 @@ import (
 	"runtime/pprof"
 )
 
-func StartConfiguration(cfg *config.Config) (*connection.Options, *tcp.Options, *os.File, *os.File) {
+func StartConfiguration(cfg *config.Config) (*connection.Options, *tcp.Options, *os.File, *os.File, *http.Server) {
 	// Setup logging
 	logger.SetupLogging(cfg)
 
@@ -71,6 +71,7 @@ func StartConfiguration(cfg *config.Config) (*connection.Options, *tcp.Options, 
 	}
 
 	// Start metrics
+	server := &http.Server{}
 	if cfg.Metrics != nil {
 		netw, addr := cfg.Metrics.Network(), cfg.Metrics.String()
 		metricsListener, err := net.Listen(netw, addr)
@@ -78,10 +79,10 @@ func StartConfiguration(cfg *config.Config) (*connection.Options, *tcp.Options, 
 		if err != nil {
 			log.Fatal(err)
 		}
-		go metrics.Start(metricsListener)
+		go metrics.Start(server, metricsListener)
 	}
 
-	return packetOptions, tcpOptions, cpuFile, memFile
+	return packetOptions, tcpOptions, cpuFile, memFile, server
 }
 
 func setupProfile(filepath *string, fd *int) *os.File {
