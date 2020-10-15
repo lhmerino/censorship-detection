@@ -79,21 +79,21 @@ func Print() {
 		log.Fatal(err)
 	}
 	str := fmt.Sprintf("Global: Processed %v packets", m.Counter.GetValue())
-	log.Printf(str)
+	log.Println(str)
 	logger.Logger.Info(str)
 
 	if err := tcp.StreamsCount.Write(m); err != nil {
 		log.Fatal(err)
 	}
 	str = fmt.Sprintf("Global: Processed %v streams", m.Counter.GetValue())
-	log.Printf(str)
+	log.Println(str)
 	logger.Logger.Info(str)
 
 	if err := tcp.DisruptedStreamsCount.Write(m); err != nil {
 		log.Fatal(err)
 	}
 	str = fmt.Sprintf("Global: Processed %v disrupted streams", m.Counter.GetValue())
-	log.Printf(str)
+	log.Println(str)
 	logger.Logger.Info(str)
 
 	// Measurements
@@ -105,7 +105,7 @@ func Print() {
 			log.Fatal(err)
 		}
 		str = fmt.Sprintf("%s: Processed %v streams", name, m.Counter.GetValue())
-		log.Printf(str)
+		log.Println(str)
 		logger.Logger.Info(str)
 
 		// Disrupted Streams
@@ -113,7 +113,7 @@ func Print() {
 			log.Fatal(err)
 		}
 		str = fmt.Sprintf("%s: Processed %v disrupted streams", name, m.Counter.GetValue())
-		log.Printf(str)
+		log.Println(str)
 		logger.Logger.Info(str)
 	}
 

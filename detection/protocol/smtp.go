@@ -25,10 +25,7 @@ func (p SMTP) GetBPFFilter() string {
 }
 
 func (p SMTP) RelevantNewConnection(net gopacket.Flow, transport gopacket.Flow) bool {
-	if transport.Dst().String() == fmt.Sprintf("%d", p.port) {
-		return true
-	}
-	return false
+	return transport.Dst().String() == fmt.Sprintf("%d", p.port)
 }
 
 func (p SMTP) GetBasicInfo() string {
