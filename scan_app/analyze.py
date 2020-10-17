@@ -21,7 +21,7 @@ class Analyze:
         """
         for IP in self.results:
             for run in self.results[IP]['Results']:
-                if run['GoMatch'] is False:
+                if not run['GoMatch']:
                     pprint(run)
 
     def pcap(self, pcap_file):

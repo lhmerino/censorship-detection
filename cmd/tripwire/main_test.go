@@ -23,9 +23,9 @@ func lockMutex() func() {
 }
 
 func TestUnitRun1(t *testing.T) {
-	cfg := config.ReadConfig("tests/test1/config.yml")
+	cfg := config.ReadConfig("testdata/test1/config.yml")
 
-	err := mainHelper(&cfg, "tests/test1/expected_test.log", 0)
+	err := mainHelper(&cfg, "testdata/test1/expected_test.log", 0)
 
 	if err != nil {
 		t.Fatalf("%v", err)
@@ -33,9 +33,9 @@ func TestUnitRun1(t *testing.T) {
 }
 
 func TestUnitRun2(t *testing.T) {
-	cfg := config.ReadConfig("tests/test2/config.yml")
+	cfg := config.ReadConfig("testdata/test2/config.yml")
 
-	err := mainHelper(&cfg, "tests/test2/expected_test.log", 0)
+	err := mainHelper(&cfg, "testdata/test2/expected_test.log", 0)
 
 	if err != nil {
 		t.Fatalf("%v", err)
@@ -44,9 +44,9 @@ func TestUnitRun2(t *testing.T) {
 
 func TestUnitRun3(t *testing.T) {
 
-	cfg := config.ReadConfig("tests/test3/config.yml")
+	cfg := config.ReadConfig("testdata/test3/config.yml")
 
-	err := mainHelper(&cfg, "tests/test3/expected_test.log", 297)
+	err := mainHelper(&cfg, "testdata/test3/expected_test.log", 297)
 
 	if err != nil {
 		t.Fatalf("%v", err)

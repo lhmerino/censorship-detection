@@ -2,7 +2,7 @@ Logger started up...
 Measurements: China/HTTP on port 80 & China/HTTPS on port 443
 Collectors: [Net - IP]|[NET - IPID]|[NET - TTL]|[TCP - Ports]|[TCP - Flags]|[TCP - SeqNum]|[TCP - Payload] Max Length: 500 |Direction: C->S|[TCP - Payload] Max Length: 500 |Direction: S->C
 BPF Filter: (tcp and port 80) or (tcp and port 443)
-Read from pcap: "tests/test3/tripwire-1597963966.pcap"
+Read from pcap: "testdata/test3/tripwire-1597963966.pcap"
 ** NEW Connection: 123.206.27.192->104.17.210.9 47368->80
 123.206.27.192->104.17.210.9 47368->80: Relevant Measurements: China/HTTP on port 80
 123.206.27.192->104.17.210.9 47368->80: Relevant Collectors: [Net - IP]|[NET - IPID]|[NET - TTL]|[TCP - Ports]|[TCP - Flags]|[TCP - SeqNum]|[TCP - Payload] Max Length: 500 |Direction: C->S|[TCP - Payload] Max Length: 500 |Direction: S->C

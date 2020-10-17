@@ -4,9 +4,9 @@ import (
 	"breakerspace.cs.umd.edu/censorship/measurement/config"
 	"breakerspace.cs.umd.edu/censorship/measurement/detection/censor"
 	"breakerspace.cs.umd.edu/censorship/measurement/detection/protocol"
+	"fmt"
 	"github.com/Kkevsterrr/gopacket"
 	"github.com/prometheus/client_golang/prometheus"
-	"strconv"
 )
 
 //Measurement :
@@ -47,7 +47,7 @@ var Measurements []*Measurement
 func NewMeasurement(censor *censor.Censor, protocol *protocol.Protocol, options *config.MeasurementOptions) *Measurement {
 	measurement := &Measurement{Censor: censor, Protocol: protocol, Options: options}
 
-	name := strconv.Itoa(len(Measurements)) + "_" + (*measurement.Censor).GetName() + "_" + (*measurement.Protocol).GetName()
+	name := fmt.Sprintf("%v_%v_%v", len(Measurements), (*measurement.Censor).GetName(), (*measurement.Protocol).GetName())
 
 	measurement.StreamsCount = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: name,

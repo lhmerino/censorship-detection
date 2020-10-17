@@ -8,7 +8,7 @@ logging:
     info: true
     quiet: false
   output:
-    file: tests/test2/test.log
+    file: testdata/test3/test.log
     fd: -1
   type: "Print"
   packet_hexdump: false
@@ -17,15 +17,33 @@ logging:
 packet:
   input:
     interface:
-    pcapFile: tests/test2/smtp.pcap
+    pcapFile: testdata/test3/tripwire-1597963966.pcap
   filter:
     BPF:
   snaplen: # Snapshot Length
-  flush: 5
+  flush: 50
 
 protocol: # Protocol Specific Options
   tcp:
     allowmissinginit: true # Support streams without SYN/SYN+ACK/ACK sequence
+
+# Measurements
+measurements:
+  - censor: China
+    protocol: HTTP
+    port: 80
+    options:
+      direction: true
+  - censor: China
+    protocol: HTTPS
+    port: 443
+    options:
+      direction: true
+  - censor: China
+    protocol: DNS
+    port: 53
+    options:
+      direction: true
 
 # Data Collectors
 collectors:
@@ -46,16 +64,11 @@ collectors:
         maxLength: 500
         direction: client # server: client->sever | client: server->client
 
-measurements:
-  - censor: China
-    protocol: SMTP
-    port: 443
-
 profile: # Performance Testing
   cpu:
     enabled: false
     file: "cpu"
-    fd:
+    fd: # file descriptor
   memory:
     enabled: false
     file: "mem"
@@ -65,4 +78,4 @@ profile: # Performance Testing
 
 metrics:
   netw: "tcp"
-  addr: ":9092"
+  addr: ":9094"

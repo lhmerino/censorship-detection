@@ -2,7 +2,7 @@ Logger started up...
 Measurements: China/SMTP on port 443
 Collectors: [Net - IP]|[NET - IPID]|[NET - TTL]|[TCP - Ports]|[TCP - Flags]|[TCP - SeqNum]|[TCP - Payload] Max Length: 500 |Direction: C->S|[TCP - Payload] Max Length: 500 |Direction: S->C
 BPF Filter: (tcp and port 443)
-Read from pcap: "tests/test2/smtp.pcap"
+Read from pcap: "testdata/test2/smtp.pcap"
 ** NEW Connection: 123.206.27.192->104.17.210.9 50914->443
 123.206.27.192->104.17.210.9 50914->443: Relevant Measurements: China/SMTP on port 443
 123.206.27.192->104.17.210.9 50914->443: Relevant Collectors: [Net - IP]|[NET - IPID]|[NET - TTL]|[TCP - Ports]|[TCP - Flags]|[TCP - SeqNum]|[TCP - Payload] Max Length: 500 |Direction: C->S|[TCP - Payload] Max Length: 500 |Direction: S->C
