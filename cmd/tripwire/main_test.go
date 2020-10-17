@@ -7,6 +7,7 @@ import (
 	"os"
 	"sync"
 	"testing"
+	"time"
 
 	"breakerspace.cs.umd.edu/censorship/measurement/config"
 	"breakerspace.cs.umd.edu/censorship/measurement/connection"
@@ -84,6 +85,8 @@ func mainHelper(cfg *config.Config, expectedLogFile string, lastBytes int) error
 	}
 
 	_ = os.Remove(cfg.Logging.Output.File)
+
+	time.Sleep(3 * time.Second)
 
 	return nil
 }

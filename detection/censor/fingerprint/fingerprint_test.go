@@ -81,8 +81,8 @@ func TestUnitRSTACKs(t *testing.T) {
 	}
 	dir = reassembly.TCPDirClientToServer
 	RstAck.ProcessPacket(tcp, &dir)
-	if RstAck.Flags != 7 || RstAck.CensorshipTriggered() != false {
-		t.Errorf("[RSTACKs] Flag, expected 7, got %d or Censorship Triggered, expected false got %t",
+	if RstAck.Flags != 7 || RstAck.CensorshipTriggered() != true {
+		t.Errorf("[RSTACKs] Flag, expected 7, got %d or Censorship Triggered, expected true got %t",
 			RstAck.Flags, RstAck.CensorshipTriggered())
 	}
 
