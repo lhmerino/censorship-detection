@@ -17,7 +17,7 @@ logging:
 packet:
   input:
     interface:
-    pcapFile: testdata/test3/tripwire-1597963966.pcap
+    pcapFile: testdata/tripwire-1597963966.pcap
   filter:
     BPF:
   snaplen: # Snapshot Length
