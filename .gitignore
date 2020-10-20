@@ -2,3 +2,5 @@ build
 output
 other
 .idea
+bin
+logs

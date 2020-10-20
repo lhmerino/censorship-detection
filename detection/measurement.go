@@ -4,9 +4,9 @@ import (
 	"breakerspace.cs.umd.edu/censorship/measurement/config"
 	"breakerspace.cs.umd.edu/censorship/measurement/detection/censor"
 	"breakerspace.cs.umd.edu/censorship/measurement/detection/protocol"
-	"breakerspace.cs.umd.edu/censorship/measurement/utils/logger"
+	"fmt"
 	"github.com/Kkevsterrr/gopacket"
-	"os"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 //Measurement :
@@ -18,6 +18,10 @@ type Measurement struct {
 
 	// Options
 	Options *config.MeasurementOptions
+
+	// Metrics
+	StreamsCount          prometheus.Counter
+	DisruptedStreamsCount prometheus.Counter
 }
 
 var Measurements []*Measurement
@@ -41,7 +45,21 @@ var Measurements []*Measurement
 //}
 
 func NewMeasurement(censor *censor.Censor, protocol *protocol.Protocol, options *config.MeasurementOptions) *Measurement {
-	return &Measurement{Censor: censor, Protocol: protocol, Options: options}
+	measurement := &Measurement{Censor: censor, Protocol: protocol, Options: options}
+
+	name := fmt.Sprintf("%v_%v_%v", len(Measurements), (*measurement.Censor).GetName(), (*measurement.Protocol).GetName())
+
+	measurement.StreamsCount = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: name,
+		Help: "Number of streams observed for " + name + ".",
+	})
+
+	measurement.DisruptedStreamsCount = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: name,
+		Help: "Number of disrupted streams observed for " + name + ".",
+	})
+
+	return measurement
 }
 
 // SetupMeasurements :
@@ -49,38 +67,11 @@ func NewMeasurement(censor *censor.Censor, protocol *protocol.Protocol, options 
 func SetupMeasurements(cfg *[]config.MeasurementConfig) {
 	Measurements = make([]*Measurement, len(*cfg))
 	for i := range *cfg {
-		protocolVar := ReadProtocolFromMeasurementConfig(&(*cfg)[i])
-		censorVar := ReadCensorFromMeasurementConfig(&(*cfg)[i])
+		protocolVar := protocol.ReadProtocolFromMeasurementConfig(&(*cfg)[i])
+		censorVar := censor.ReadCensorFromMeasurementConfig(&(*cfg)[i])
 
 		Measurements[i] = NewMeasurement(&censorVar, &protocolVar, &(*cfg)[i].Options)
 	}
-}
-
-// ReadProtocolFromMeasurementConfig :
-//	Returns the protocol implementation given the string value
-//	specified in the measurement definition in the YAML file
-func ReadProtocolFromMeasurementConfig(measurement *config.MeasurementConfig) protocol.Protocol {
-	// Protocols
-	if measurement.Protocol == "HTTP" {
-		return protocol.NewHTTPCustom(measurement.Port)
-	}
-	logger.Logger.Error(measurement.Protocol)
-	logger.Logger.Error("[Config] Invalid Measurement Protocol %s\n", measurement.Protocol)
-	os.Exit(1)
-	return nil
-}
-
-// ReadCensorFromMeasurementConfig :
-//	Returns the censor implementation given the string value
-//	specified in the measurement definition in the YAML file
-func ReadCensorFromMeasurementConfig(measurement *config.MeasurementConfig) censor.Censor {
-	if measurement.Censor == "China" {
-		return censor.NewChina(&measurement.Options)
-	}
-
-	logger.Logger.Error("[Config] Invalid Measurement Censor %s\n", measurement.Censor)
-	os.Exit(1)
-	return nil
 }
 
 func GetBPFFilters(measurements []*Measurement) string {

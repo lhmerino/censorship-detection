@@ -2,16 +2,11 @@ package main
 
 import (
 	"flag"
-	"log"
-	"net"
 	_ "net/http/pprof"
 
 	"breakerspace.cs.umd.edu/censorship/measurement/config"
 	"breakerspace.cs.umd.edu/censorship/measurement/connection"
-	"breakerspace.cs.umd.edu/censorship/measurement/metrics"
 	"breakerspace.cs.umd.edu/censorship/measurement/setup"
-	"github.com/pkg/errors"
-	dto "github.com/prometheus/client_model/go"
 )
 
 var (
@@ -34,33 +29,13 @@ func main() {
 	overrideArgs(&cfg)
 
 	// Configure Application
-	packetOptions, tcpOptions, cpuFile, memFile := setup.StartConfiguration(&cfg)
-
-	// Start metrics
-	if cfg.Metrics != nil {
-		netw, addr := cfg.Metrics.Network(), cfg.Metrics.String()
-		metricsListener, err := net.Listen(netw, addr)
-		err = errors.Wrapf(err, "metrics, netw=%v, addr=%v", netw, addr)
-		if err != nil {
-			log.Fatal(err)
-		}
-		go metrics.Start(metricsListener)
-	}
+	packetOptions, tcpOptions, cpuFile, memFile, server := setup.StartConfiguration(&cfg)
 
 	// Run program
 	connection.Run(packetOptions, tcpOptions)
 
 	// Cleanup program
-	setup.EndConfiguration(cpuFile, memFile)
-
-	// Print metrics
-	if cfg.Metrics != nil {
-		var m = &dto.Metric{}
-		if err := connection.PacketsCount.Write(m); err != nil {
-			log.Fatal(err)
-		}
-		log.Printf("Processed %v packets", m.Counter.GetValue())
-	}
+	setup.EndConfiguration(&cfg, cpuFile, memFile, server)
 }
 
 func overrideArgs(cfg *config.Config) {

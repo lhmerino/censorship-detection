@@ -6,16 +6,19 @@ import (
 	"breakerspace.cs.umd.edu/censorship/measurement/connection/tcp"
 	"breakerspace.cs.umd.edu/censorship/measurement/detection"
 	"breakerspace.cs.umd.edu/censorship/measurement/detection/collector"
+	"breakerspace.cs.umd.edu/censorship/measurement/metrics"
 	"breakerspace.cs.umd.edu/censorship/measurement/utils/logger"
 	"fmt"
+	"github.com/pkg/errors"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"runtime"
 	"runtime/pprof"
 )
 
-func StartConfiguration(cfg *config.Config) (*connection.Options, *tcp.Options, *os.File, *os.File) {
+func StartConfiguration(cfg *config.Config) (*connection.Options, *tcp.Options, *os.File, *os.File, *http.Server) {
 	// Setup logging
 	logger.SetupLogging(cfg)
 
@@ -67,7 +70,19 @@ func StartConfiguration(cfg *config.Config) (*connection.Options, *tcp.Options, 
 		}()
 	}
 
-	return packetOptions, tcpOptions, cpuFile, memFile
+	// Start metrics
+	server := &http.Server{}
+	if cfg.Metrics != nil {
+		netw, addr := cfg.Metrics.Network(), cfg.Metrics.String()
+		metricsListener, err := net.Listen(netw, addr)
+		err = errors.Wrapf(err, "metrics, netw=%v, addr=%v", netw, addr)
+		if err != nil {
+			log.Fatal(err)
+		}
+		go metrics.Start(server, metricsListener)
+	}
+
+	return packetOptions, tcpOptions, cpuFile, memFile, server
 }
 
 func setupProfile(filepath *string, fd *int) *os.File {

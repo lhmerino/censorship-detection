@@ -1,13 +1,16 @@
 package setup
 
 import (
+	"breakerspace.cs.umd.edu/censorship/measurement/config"
+	"breakerspace.cs.umd.edu/censorship/measurement/metrics"
 	"log"
+	"net/http"
 	"os"
 	"runtime"
 	"runtime/pprof"
 )
 
-func EndConfiguration(cpuFile *os.File, memFile *os.File) {
+func EndConfiguration(cfg *config.Config, cpuFile *os.File, memFile *os.File, server *http.Server) {
 	//Write CPU profile
 	if cpuFile != nil {
 		pprof.StopCPUProfile()
@@ -22,4 +25,11 @@ func EndConfiguration(cpuFile *os.File, memFile *os.File) {
 		}
 		memFile.Close()
 	}
+
+	// Print metrics
+	if cfg.Metrics != nil {
+		metrics.Print()
+	}
+
+	_ = server.Close()
 }

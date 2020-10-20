@@ -1,0 +1,62 @@
+Logger started up...
+Measurements: China/SMTP on port 443
+Collectors: [Net - IP]|[NET - IPID]|[NET - TTL]|[TCP - Ports]|[TCP - Flags]|[TCP - SeqNum]|[TCP - Payload] Max Length: 500 |Direction: C->S|[TCP - Payload] Max Length: 500 |Direction: S->C
+BPF Filter: (tcp and port 443)
+Read from pcap: "testdata/test2/smtp.pcap"
+** NEW Connection: 123.206.27.192->104.17.210.9 50914->443
+123.206.27.192->104.17.210.9 50914->443: Relevant Measurements: China/SMTP on port 443
+123.206.27.192->104.17.210.9 50914->443: Relevant Collectors: [Net - IP]|[NET - IPID]|[NET - TTL]|[TCP - Ports]|[TCP - Flags]|[TCP - SeqNum]|[TCP - Payload] Max Length: 500 |Direction: C->S|[TCP - Payload] Max Length: 500 |Direction: S->C
+123.206.27.192->104.17.210.9 50914->443(client->server): Accept | S:true, A:false, P:false, R:false F:false
+123.206.27.192->104.17.210.9 50914->443(client->server): ReassembledSG | 0 bytes (start:true,end:false,skip:0,saved:0,nb:1,1,overlap:0,0)
+104.17.210.9->123.206.27.192 443->50914(server->client): Accept | S:true, A:true, P:false, R:false F:false
+104.17.210.9->123.206.27.192 443->50914(server->client): ReassembledSG | 0 bytes (start:true,end:false,skip:0,saved:0,nb:1,1,overlap:0,0)
+123.206.27.192->104.17.210.9 50914->443(client->server): Accept | S:false, A:true, P:false, R:false F:false
+123.206.27.192->104.17.210.9 50914->443(client->server): Accept | S:false, A:true, P:true, R:false F:false
+123.206.27.192->104.17.210.9 50914->443(client->server): ReassembledSG | 28 bytes (start:false,end:false,skip:0,saved:0,nb:1,1,overlap:0,0)
+104.17.210.9->123.206.27.192 443->50914(server->client): Accept | S:false, A:true, P:false, R:false F:false
+Forced flush: 0 flushed, 0 closed
+104.17.210.9->123.206.27.192 443->50914(server->client): Accept | S:false, A:true, P:true, R:false F:false
+104.17.210.9->123.206.27.192 443->50914(server->client): ReassembledSG | 316 bytes (start:false,end:false,skip:0,saved:0,nb:1,1,overlap:0,0)
+123.206.27.192->104.17.210.9 50914->443(client->server): Accept | S:false, A:true, P:true, R:false F:false
+123.206.27.192->104.17.210.9 50914->443(client->server): ReassembledSG | 11 bytes (start:false,end:false,skip:0,saved:0,nb:1,1,overlap:0,0)
+104.17.210.9->123.206.27.192 443->50914(server->client): Accept | S:false, A:true, P:false, R:false F:true
+104.17.210.9->123.206.27.192 443->50914(server->client): ReassembledSG | 0 bytes (start:false,end:true,skip:0,saved:0,nb:1,1,overlap:0,0)
+104.17.210.9->123.206.27.192 443->50914(server->client): Accept | S:false, A:true, P:false, R:false F:false
+123.206.27.192->104.17.210.9 50914->443(client->server): Accept | S:false, A:true, P:false, R:true F:false
+123.206.27.192->104.17.210.9 50914->443(client->server): ReassembledSG | 0 bytes (start:false,end:true,skip:0,saved:0,nb:1,1,overlap:0,0)
+123.206.27.192->104.17.210.9 50914->443: TCP Stream Reassembly Complete
+Forced flush: 0 flushed, 0 closed
+123.206.27.192->104.17.210.9 50914->443(client->server): Accept | S:false, A:true, P:false, R:true F:false
+123.206.27.192->104.17.210.9 50914->443(client->server): Accept | S:false, A:true, P:false, R:true F:false
+123.206.27.192->104.17.210.9 50914->443(client->server): Accept | S:false, A:true, P:false, R:true F:false
+123.206.27.192->104.17.210.9 50914->443(client->server): Accept | S:false, A:true, P:false, R:false F:false
+104.17.210.9->123.206.27.192 443->50914(server->client): Accept | S:false, A:true, P:false, R:false F:false
+Forced flush: 0 flushed, 0 closed
+123.206.27.192->104.17.210.9 50914->443(client->server): Accept | S:false, A:true, P:false, R:true F:false
+123.206.27.192->104.17.210.9 50914->443(client->server): Accept | S:false, A:true, P:false, R:false F:false
+123.206.27.192->104.17.210.9 50914->443(client->server): Accept | S:false, A:true, P:false, R:false F:false
+123.206.27.192->104.17.210.9 50914->443(client->server): Accept | S:false, A:true, P:false, R:false F:false
+104.17.210.9->123.206.27.192 443->50914(server->client): Accept | S:false, A:true, P:false, R:false F:true
+Forced flush: 0 flushed, 0 closed
+104.17.210.9->123.206.27.192 443->50914(server->client): Accept | S:false, A:true, P:true, R:false F:true
+123.206.27.192->104.17.210.9 50914->443(client->server): Accept | S:false, A:true, P:false, R:true F:false
+123.206.27.192->104.17.210.9 50914->443(client->server): Accept | S:false, A:true, P:false, R:false F:false
+104.17.210.9->123.206.27.192 443->50914(server->client): Accept | S:false, A:false, P:false, R:true F:false
+End of PCAP
+123.206.27.192->104.17.210.9 50914->443: Censorship Detected
+[[Net - IP]:[123.206.27.192->104.17.210.9]
+ [NET - IPID]:[4250 0 4251 4252 63394 63395 46015 63396 63397 15590 15590 15590 15972 4253 63398 13133 4254 4255 4256 63399 63400 14344 4257 0]
+ [NET - TTL]:[50 64 50 50 64 64 113 64 64 163 163 163 164 50 64 165 50 50 50 64 64 169 50 64]
+ [TCP - Ports]:[50914->443(https) 443(https)->50914 50914->443(https) 50914->443(https) 443(https)->50914 443(https)->50914 50914->443(https) 443(https)->50914 443(https)->50914 50914->443(https) 50914->443(https) 50914->443(https) 50914->443(https) 50914->443(https) 443(https)->50914 50914->443(https) 50914->443(https) 50914->443(https) 50914->443(https) 443(https)->50914 443(https)->50914 50914->443(https) 50914->443(https) 443(https)->50914]
+ [TCP - Flags]:[S SA A PA A PA PA FA A RA RA RA RA A A RA A A A FA FPA RA A R]
+ [TCP - SeqNum]:[S:2870690343-A:0 S:3791931717-A:2870690344 S:2870690344-A:3791931718 S:2870690344-A:3791931718 S:3791931718-A:2870690372 S:3791931718-A:2870690372 S:2870690372-A:3791931718 S:3791932034-A:2870690372 S:3791932035-A:2870690383 S:2870690372-A:3791931718 S:2870690372-A:3791931718 S:2870690372-A:3791931718 S:2870690372-A:3791931718 S:2870690372-A:3791931752 S:3791932035-A:2870690383 S:2870690372-A:3791931718 S:2870690372-A:3791931752 S:2870690372-A:3791932034 S:2870690372-A:3791932035 S:3791932034-A:2870690383 S:3791931718-A:2870690383 S:2870690383-A:3791931718 S:2870690372-A:3791932035 S:3791932035-A:0]
+ [TCP - Payload] Max Length: 500 |Direction: C->S:[ 4d41494c2046524f4d3a207869617a616940757075702e696e666f0a 0d0a2e0d0a515549540d0a ]
+ [TCP - Payload] Max Length: 500 |Direction: S->C:[ 485454502f312e31203430302042616420526571756573740d0a5365727665723a20636c6f7564666c6172650d0a446174653a205468752c2032302041756720323032302032323a35383a303420474d540d0a436f6e74656e742d547970653a20746578742f68746d6c0d0a436f6e74656e742d4c656e6774683a203135350d0a436f6e6e656374696f6e3a20636c6f73650d0a43462d5241593a202d0d0a0d0a3c68746d6c3e0d0a3c686561643e3c7469746c653e3430302042616420526571756573743c2f7469746c653e3c2f686561643e0d0a3c626f64793e0d0a3c63656e7465723e3c68313e3430302042616420526571756573743c2f68313e3c2f63656e7465723e0d0a3c68723e3c63656e7465723e636c6f7564666c6172653c2f63656e7465723e0d0a3c2f626f64793e0d0a3c2f68746d6c3e0d0a ]
+]
+Final flush: 1 closed
+pageCache: used: 0, size: 1024, free: 1024
+Global: Processed 24 packets
+Global: Processed 1 streams
+Global: Processed 1 disrupted streams
+China-SMTP on port 443: Processed 1 streams
+China-SMTP on port 443: Processed 1 disrupted streams
