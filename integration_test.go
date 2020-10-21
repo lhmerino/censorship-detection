@@ -6,8 +6,6 @@ import (
 	"os"
 	"os/exec"
 	"testing"
-
-	"github.com/kylelemons/godebug/diff"
 )
 
 // Run integration tests against tripwire executable in current directory
@@ -57,7 +55,7 @@ func TestIntegration(t *testing.T) {
 			expected = expected[len(expected)-test.lastBytes:]
 		}
 		if !bytes.Equal(expected, actual) {
-			t.Fatalf("Contents do not match for %v:\n%v", test.name, diff.Diff(string(expected), string(actual)))
+			t.Fatalf("Contents do not match for %v", test.name)
 		}
 
 		// clean up
