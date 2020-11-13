@@ -1,9 +1,6 @@
 package metrics
 
 import (
-	"breakerspace.cs.umd.edu/censorship/measurement/connection/tcp"
-	"breakerspace.cs.umd.edu/censorship/measurement/detection"
-	"breakerspace.cs.umd.edu/censorship/measurement/utils/logger"
 	"fmt"
 	"log"
 	"net"
@@ -12,11 +9,12 @@ import (
 	"runtime"
 	"strings"
 
-	"breakerspace.cs.umd.edu/censorship/measurement/connection"
+	"tripwire/parser"
+	"tripwire/tcpstream"
+	"tripwire/util/logger"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-
 	dto "github.com/prometheus/client_model/go"
 )
 
@@ -33,11 +31,11 @@ var (
 )
 
 // metrics registers metrics with Prometheus and starts the server.
-func Start(server *http.Server, metricsList net.Listener) {
+func Start(server *http.Server, metricsListener net.Listener) {
 	buildInfo.WithLabelValues(Version, GoVersion).Set(1)
 
 	registry := []prometheus.Collector{
-		buildInfo, connection.PacketsCount, tcp.StreamsCount, tcp.DisruptedStreamsCount,
+		buildInfo, parser.PacketsCount, tcpstream.StreamsCount,
 	}
 
 	for i, coll := range registry {
@@ -62,59 +60,56 @@ func Start(server *http.Server, metricsList net.Listener) {
 
 	server.Handler = mux
 
-	if err := server.Serve(metricsList); err != nil {
+	if err := server.Serve(metricsListener); err != nil {
 		if strings.Contains(err.Error(), "closed network connection") {
-			log.Println("terminating metrics listener")
+			logger.Info.Println("terminating metrics listener")
 		} else if strings.Contains(err.Error(), "Server closed") {
-			log.Println("http prometheus server closed")
+			logger.Info.Println("http prometheus server closed")
 		} else {
 			log.Fatal(err)
 		}
 	}
 }
 
-func Print() {
+func Print(labels []string) {
+	var err error
 	var m = &dto.Metric{}
-	if err := connection.PacketsCount.Write(m); err != nil {
+	var counter prometheus.Counter
+
+	if counter, err = parser.PacketsCount.GetMetricWithLabelValues("tcp"); err != nil {
 		log.Fatal(err)
 	}
-	str := fmt.Sprintf("Global: Processed %v packets", m.Counter.GetValue())
-	log.Println(str)
-	logger.Logger.Info(str)
-
-	if err := tcp.StreamsCount.Write(m); err != nil {
+	if err = counter.Write(m); err != nil {
 		log.Fatal(err)
 	}
-	str = fmt.Sprintf("Global: Processed %v streams", m.Counter.GetValue())
-	log.Println(str)
-	logger.Logger.Info(str)
+	tcpPackets := int(m.Counter.GetValue())
 
-	if err := tcp.DisruptedStreamsCount.Write(m); err != nil {
+	if counter, err = parser.PacketsCount.GetMetricWithLabelValues("other"); err != nil {
 		log.Fatal(err)
 	}
-	str = fmt.Sprintf("Global: Processed %v disrupted streams", m.Counter.GetValue())
-	log.Println(str)
-	logger.Logger.Info(str)
+	if err = counter.Write(m); err != nil {
+		log.Fatal(err)
+	}
+	otherPackets := int(m.Counter.GetValue())
 
-	// Measurements
-	for i := 0; i < len(detection.Measurements); i++ {
-		name := (*detection.Measurements[i].Censor).GetBasicInfo() + "-" + (*detection.Measurements[i].Protocol).GetBasicInfo()
+	logger.Info.Printf("global_packets: %d tcp, %d other", tcpPackets, otherPackets)
 
-		// Total Streams
-		if err := detection.Measurements[i].StreamsCount.Write(m); err != nil {
+	labels = append([]string{"global_streams"}, labels...)
+	for _, label := range labels {
+		if counter, err = tcpstream.StreamsCount.GetMetricWithLabelValues(label, "false"); err != nil {
 			log.Fatal(err)
 		}
-		str = fmt.Sprintf("%s: Processed %v streams", name, m.Counter.GetValue())
-		log.Println(str)
-		logger.Logger.Info(str)
-
-		// Disrupted Streams
-		if err := detection.Measurements[i].DisruptedStreamsCount.Write(m); err != nil {
+		if err = counter.Write(m); err != nil {
 			log.Fatal(err)
 		}
-		str = fmt.Sprintf("%s: Processed %v disrupted streams", name, m.Counter.GetValue())
-		log.Println(str)
-		logger.Logger.Info(str)
+		streamsCount := int(m.Counter.GetValue())
+		if counter, err = tcpstream.StreamsCount.GetMetricWithLabelValues(label, "true"); err != nil {
+			log.Fatal(err)
+		}
+		if err = counter.Write(m); err != nil {
+			log.Fatal(err)
+		}
+		disruptedStreamsCount := int(m.Counter.GetValue())
+		logger.Info.Printf("%s: %d total, %d disrupted", label, streamsCount+disruptedStreamsCount, disruptedStreamsCount)
 	}
-
 }

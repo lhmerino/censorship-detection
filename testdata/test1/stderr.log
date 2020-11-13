@@ -1,0 +1,32 @@
+INFO Initialized detectors
+INFO Initialized collectors
+DEBUG BPF Filter: (tcp and port 9999) or (tcp and port 80) or (tcp and port 7777)
+INFO Running parser
+INFO Read from pcap: "testdata/test1/test.pcap"
+DEBUG 222.222.222.222->172.172.172.172 59710->9999: New Connection
+DEBUG 222.222.222.222->172.172.172.172 59710->9999(client->server): Accept | S:true, A:false, P:false, R:false F:false
+DEBUG 222.222.222.222->172.172.172.172 59710->9999(client->server): ReassembledSG | 0 bytes (start:true,end:false,skip:0,saved:0,nb:1,1,overlap:0,0)
+DEBUG 172.172.172.172->222.222.222.222 9999->59710(server->client): Accept | S:true, A:true, P:false, R:false F:false
+DEBUG 172.172.172.172->222.222.222.222 9999->59710(server->client): ReassembledSG | 0 bytes (start:true,end:false,skip:0,saved:0,nb:1,1,overlap:0,0)
+DEBUG 222.222.222.222->172.172.172.172 59710->9999(client->server): Accept | S:false, A:true, P:false, R:false F:false
+DEBUG 222.222.222.222->172.172.172.172 59710->9999(client->server): Accept | S:false, A:true, P:true, R:false F:false
+DEBUG 222.222.222.222->172.172.172.172 59710->9999(client->server): ReassembledSG | 93 bytes (start:false,end:false,skip:0,saved:0,nb:1,1,overlap:0,0)
+DEBUG 172.172.172.172->222.222.222.222 9999->59710(server->client): Accept | S:false, A:true, P:false, R:false F:false
+DEBUG Forced flush: 0 flushed, 0 closed, 5 total
+DEBUG 222.222.222.222->172.172.172.172 59710->9999(client->server): Accept | S:false, A:true, P:false, R:true F:false
+DEBUG 222.222.222.222->172.172.172.172 59710->9999(client->server): ReassembledSG | 0 bytes (start:false,end:true,skip:0,saved:0,nb:1,1,overlap:0,0)
+DEBUG 222.222.222.222->172.172.172.172 59710->9999(client->server): Accept | S:false, A:true, P:false, R:true F:false
+DEBUG 222.222.222.222->172.172.172.172 59710->9999(client->server): Accept | S:false, A:true, P:false, R:true F:false
+DEBUG 222.222.222.222->172.172.172.172 59710->9999(client->server): Accept | S:false, A:false, P:false, R:true F:false
+DEBUG 222.222.222.222->172.172.172.172 59710->9999(client->server): Accept | S:false, A:false, P:false, R:true F:false
+DEBUG Forced flush: 0 flushed, 0 closed, 10 total
+INFO End of PCAP
+DEBUG 222.222.222.222->172.172.172.172 59710->9999: TCP Stream Reassembly Complete
+DEBUG 222.222.222.222->172.172.172.172 59710->9999: Disruption Detected
+DEBUG Final flush: 1 closed, 10 total
+INFO global_packets: 10 tcp, 0 other
+INFO global_streams: 1 total, 1 disrupted
+INFO http_9999_rstacks: 1 total, 1 disrupted
+INFO http_80_rstacks: 0 total, 0 disrupted
+INFO http_7777_rstacks: 0 total, 0 disrupted
+INFO Stopping metrics server

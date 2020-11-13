@@ -1,96 +1,56 @@
 # Config File
 
-## Logging Parameters
-logging:
-  level:
-    debug: true
-    verbose: true
-    info: true
-    quiet: false
-  output:
-    file: "logs"
-    fd: -1
-  type: "Print"
-  packet_hexdump: false
+## Logger Parameters
+logger:
+  debug: true
+  outform: txt # txt or json
 
-## Packet Parameters
-packet:
-  input:
-    interface: # en0
-    pcapFile: testdata/tripwire-1597963966.pcap
-  filter:
-    BPF: "tcp"
-  snaplen: # Snapshot Length
-  flush: 50
-
-protocol: # Protocol Specific Options
-  tcp:
-    allowmissinginit: true # Support streams without SYN/SYN+ACK/ACK sequence
-
-# Measurements
-measurements:
-  - censor: China
-    protocol: HTTP
-    port: 9999
-    options:
-      direction: false # Should packet direction be taken into account - Default false
-  - censor: China
-    protocol: HTTP
-    port: 80
-    options:
-      direction: true
-  - censor: China
-    protocol: HTTP
-    port: 7777
-    options:
-      direction: true
-  - censor: China
-    protocol: SMTP
-    port: 25
-    options:
-      direction: true
-  - censor: China
-    protocol: HTTPS
-    port: 443
-    options:
-      direction: true
-  - censor: China
-    protocol: DNS
-    port: 53
-    options:
-      direction: true
-
-# Data Collectors
-collectors:
-  net: # Network Layer
-    - type: IP
-    - type: IPID
-    - type: TTL
-  tcp: # Transport Layer
-    - type: Ports
-    - type: Flags
-    - type: SeqNum
-    - type: Payload
-      options:
-        maxLength: 500
-        direction: server # server: client->sever | client: server->client
-    - type: Payload
-      options:
-        maxLength: 500
-        direction: client # server: client->sever | client: server->client
-
-profile: # Performance Testing
-  cpu:
-    enabled: false
-    file: "cpu"
-    fd: # file descriptor
-  memory:
-    enabled: false
-    file: "mem"
-    fd:
-  httpServer:
-    enabled: false
-
+## Metrics Parameters
 metrics:
   netw: "tcp"
   addr: ":9090"
+
+## Parser Parameters
+parser:
+  input:
+    interface:  #en0
+    pcap: testdata/tripwire-1597963966.pcap
+  snaplen: # Snapshot Length
+  flush: 50
+  tcp:
+    allowmissinginit: true # Support streams without SYN/SYN+ACK/ACK sequence
+
+# Detectors
+detectors:
+  - heuristic: RSTACKs
+    protocol: HTTP
+    port: 80
+  - heuristic: RSTACKs
+    protocol: SMTP
+    port: 25
+  - heuristic: RSTACKs
+    protocol: HTTPS
+    port: 443
+  - heuristic: RSTACKs
+    protocol: ECH
+    port: 443
+  - heuristic: RSTACKs
+    protocol: HTTPS
+    port: 443
+  - heuristic: RSTACKs
+    protocol: DNS
+    port: 53
+
+# Data Collector
+collector:
+  fields:
+    - IP
+    - IPID
+    - TTL
+    - Ports
+    - Flags
+    - SeqNum
+    - Payload
+    - SNI
+  cli_maxlen: 0
+  srv_maxlen: 0

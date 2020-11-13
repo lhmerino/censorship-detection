@@ -1,68 +1,34 @@
 # Config File
 
-## Logging Parameters
-logging:
-  level:
-    debug: true
-    verbose: true
-    info: true
-    quiet: false
-  output:
-    file: testdata/test2/test.log
-    fd: -1
-  type: "Print"
-  packet_hexdump: false
+## Logger Parameters
+logger:
+  debug: true
+  outform: txt
 
-## Packet Parameters
-packet:
+## Parser Parameters
+parser:
   input:
-    interface:
-    pcapFile: testdata/test2/smtp.pcap
-  filter:
-    BPF:
-  snaplen: # Snapshot Length
+    pcap: testdata/test2/smtp.pcap
   flush: 5
-
-protocol: # Protocol Specific Options
   tcp:
     allowmissinginit: true # Support streams without SYN/SYN+ACK/ACK sequence
 
-# Data Collectors
-collectors:
-  net: # Network Layer
-    - type: IP
-    - type: IPID
-    - type: TTL
-  tcp: # Transport Layer
-    - type: Ports
-    - type: Flags
-    - type: SeqNum
-    - type: Payload
-      options:
-        maxLength: 500
-        direction: server # server: client->sever | client: server->client
-    - type: Payload
-      options:
-        maxLength: 500
-        direction: client # server: client->sever | client: server->client
-
-measurements:
-  - censor: China
+# Detectors
+detectors:
+  - heuristic: RSTACKs
     protocol: SMTP
     port: 443
 
-profile: # Performance Testing
-  cpu:
-    enabled: false
-    file: "cpu"
-    fd:
-  memory:
-    enabled: false
-    file: "mem"
-    fd:
-  httpServer:
-    enabled: false
-
-metrics:
-  netw: "tcp"
-  addr: ":9092"
+# Data Collector
+collector:
+  fields:
+    - IP
+    - IPID
+    - TTL
+    - Ports
+    - Flags
+    - SeqNum
+    - Payload
+    - SNI
+  cli_maxlen: 500
+  srv_maxlen: 500

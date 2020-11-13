@@ -1,0 +1,49 @@
+INFO Initialized detectors
+INFO Initialized collectors
+DEBUG BPF Filter: (tcp and port 443)
+INFO Running parser
+INFO Read from pcap: "testdata/test2/smtp.pcap"
+DEBUG 123.206.27.192->104.17.210.9 50914->443: New Connection
+DEBUG 123.206.27.192->104.17.210.9 50914->443(client->server): Accept | S:true, A:false, P:false, R:false F:false
+DEBUG 123.206.27.192->104.17.210.9 50914->443(client->server): ReassembledSG | 0 bytes (start:true,end:false,skip:0,saved:0,nb:1,1,overlap:0,0)
+DEBUG 104.17.210.9->123.206.27.192 443->50914(server->client): Accept | S:true, A:true, P:false, R:false F:false
+DEBUG 104.17.210.9->123.206.27.192 443->50914(server->client): ReassembledSG | 0 bytes (start:true,end:false,skip:0,saved:0,nb:1,1,overlap:0,0)
+DEBUG 123.206.27.192->104.17.210.9 50914->443(client->server): Accept | S:false, A:true, P:false, R:false F:false
+DEBUG 123.206.27.192->104.17.210.9 50914->443(client->server): Accept | S:false, A:true, P:true, R:false F:false
+DEBUG 123.206.27.192->104.17.210.9 50914->443(client->server): ReassembledSG | 28 bytes (start:false,end:false,skip:0,saved:0,nb:1,1,overlap:0,0)
+DEBUG 104.17.210.9->123.206.27.192 443->50914(server->client): Accept | S:false, A:true, P:false, R:false F:false
+DEBUG Forced flush: 0 flushed, 0 closed, 5 total
+DEBUG 104.17.210.9->123.206.27.192 443->50914(server->client): Accept | S:false, A:true, P:true, R:false F:false
+DEBUG 104.17.210.9->123.206.27.192 443->50914(server->client): ReassembledSG | 316 bytes (start:false,end:false,skip:0,saved:0,nb:1,1,overlap:0,0)
+DEBUG 123.206.27.192->104.17.210.9 50914->443(client->server): Accept | S:false, A:true, P:true, R:false F:false
+DEBUG 123.206.27.192->104.17.210.9 50914->443(client->server): ReassembledSG | 11 bytes (start:false,end:false,skip:0,saved:0,nb:1,1,overlap:0,0)
+DEBUG 104.17.210.9->123.206.27.192 443->50914(server->client): Accept | S:false, A:true, P:false, R:false F:true
+DEBUG 104.17.210.9->123.206.27.192 443->50914(server->client): ReassembledSG | 0 bytes (start:false,end:true,skip:0,saved:0,nb:1,1,overlap:0,0)
+DEBUG 104.17.210.9->123.206.27.192 443->50914(server->client): Accept | S:false, A:true, P:false, R:false F:false
+DEBUG 123.206.27.192->104.17.210.9 50914->443(client->server): Accept | S:false, A:true, P:false, R:true F:false
+DEBUG 123.206.27.192->104.17.210.9 50914->443(client->server): ReassembledSG | 0 bytes (start:false,end:true,skip:0,saved:0,nb:1,1,overlap:0,0)
+DEBUG 123.206.27.192->104.17.210.9 50914->443: TCP Stream Reassembly Complete
+DEBUG Forced flush: 0 flushed, 0 closed, 10 total
+DEBUG 123.206.27.192->104.17.210.9 50914->443(client->server): Accept | S:false, A:true, P:false, R:true F:false
+DEBUG 123.206.27.192->104.17.210.9 50914->443(client->server): Accept | S:false, A:true, P:false, R:true F:false
+DEBUG 123.206.27.192->104.17.210.9 50914->443(client->server): Accept | S:false, A:true, P:false, R:true F:false
+DEBUG 123.206.27.192->104.17.210.9 50914->443(client->server): Accept | S:false, A:true, P:false, R:false F:false
+DEBUG 104.17.210.9->123.206.27.192 443->50914(server->client): Accept | S:false, A:true, P:false, R:false F:false
+DEBUG Forced flush: 0 flushed, 0 closed, 15 total
+DEBUG 123.206.27.192->104.17.210.9 50914->443(client->server): Accept | S:false, A:true, P:false, R:true F:false
+DEBUG 123.206.27.192->104.17.210.9 50914->443(client->server): Accept | S:false, A:true, P:false, R:false F:false
+DEBUG 123.206.27.192->104.17.210.9 50914->443(client->server): Accept | S:false, A:true, P:false, R:false F:false
+DEBUG 123.206.27.192->104.17.210.9 50914->443(client->server): Accept | S:false, A:true, P:false, R:false F:false
+DEBUG 104.17.210.9->123.206.27.192 443->50914(server->client): Accept | S:false, A:true, P:false, R:false F:true
+DEBUG Forced flush: 0 flushed, 0 closed, 20 total
+DEBUG 104.17.210.9->123.206.27.192 443->50914(server->client): Accept | S:false, A:true, P:true, R:false F:true
+DEBUG 123.206.27.192->104.17.210.9 50914->443(client->server): Accept | S:false, A:true, P:false, R:true F:false
+DEBUG 123.206.27.192->104.17.210.9 50914->443(client->server): Accept | S:false, A:true, P:false, R:false F:false
+DEBUG 104.17.210.9->123.206.27.192 443->50914(server->client): Accept | S:false, A:false, P:false, R:true F:false
+INFO End of PCAP
+DEBUG 123.206.27.192->104.17.210.9 50914->443: Disruption Detected
+DEBUG Final flush: 1 closed, 24 total
+INFO global_packets: 24 tcp, 0 other
+INFO global_streams: 1 total, 1 disrupted
+INFO smtp_443_rstacks: 1 total, 1 disrupted
+INFO Stopping metrics server
