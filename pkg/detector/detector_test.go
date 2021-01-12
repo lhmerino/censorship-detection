@@ -5,7 +5,7 @@ import (
 	"github.com/Kkevsterrr/gopacket/layers"
 	"net"
 	"testing"
-	"tripwire/config"
+	"tripwire/pkg/config"
 )
 
 func TestUnitDetectorFactory(t *testing.T) {

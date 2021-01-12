@@ -26,12 +26,15 @@ detectors:
 collector:
   fields:
     - IP
+    - Ports
+    - Direction
+    - Timestamp
     - IPID
     - TTL
-    - Ports
     - Flags
     - SeqNum
     - Payload
     - SNI
+    - Host
   cli_maxlen: 500
   srv_maxlen: 500

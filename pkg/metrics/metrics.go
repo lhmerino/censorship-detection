@@ -9,9 +9,9 @@ import (
 	"runtime"
 	"strings"
 
-	"tripwire/parser"
-	"tripwire/tcpstream"
-	"tripwire/util/logger"
+	"tripwire/pkg/parser"
+	"tripwire/pkg/tcpstream"
+	"tripwire/pkg/util/logger"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"

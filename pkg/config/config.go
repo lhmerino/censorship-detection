@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"tripwire/util/logger"
+	"tripwire/pkg/util/logger"
 
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
@@ -20,9 +20,11 @@ type DetectorConfig struct {
 }
 
 type CollectorConfig struct {
-	Fields          []string `yaml:"fields"`
-	ClientMaxLength int      `yaml:"cli_maxlen"` // Used by Payload
-	ServerMaxLength int      `yaml:"srv_maxlen"` // Used by Payload
+	Fields                 []string `yaml:"fields"`
+	TruncateIPs            bool     `yaml:"truncate_ips"` // Used by IP
+	MaxPacketCount         int      `yaml:"max_packets"`  // Used by any collector that calls processPacket
+	MaxClientPayloadLength int      `yaml:"cli_maxlen"`   // Used by Payload
+	MaxServerPayloadLength int      `yaml:"srv_maxlen"`   // Used by Payload
 }
 
 type TCPConfig struct {

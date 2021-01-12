@@ -1,6 +1,6 @@
 module tripwire
 
-go 1.14
+go 1.15
 
 require (
 	github.com/Kkevsterrr/gopacket v1.1.23

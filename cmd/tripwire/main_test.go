@@ -7,13 +7,13 @@ import (
 	"sort"
 	"strings"
 	"testing"
-	"tripwire/config"
-	"tripwire/parser"
-	"tripwire/tcpstream"
-	"tripwire/util/logger"
+	"tripwire/pkg/config"
+	"tripwire/pkg/parser"
+	"tripwire/pkg/tcpstream"
+	"tripwire/pkg/util/logger"
 )
 
-func TestIntegration(t *testing.T) {
+func TestIntegrationMain(t *testing.T) {
 
 	// Change working directory
 	if err := os.Chdir("../../"); err != nil {
@@ -68,6 +68,32 @@ func TestIntegration(t *testing.T) {
 		if !compareSortedLines(expectedStdout, actualStdout.Bytes()) {
 			t.Fatalf("Contents do not match for %v", test.name)
 		}
+	}
+
+	// Reset working directory
+	if err := os.Chdir("cmd/tripwire"); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func BenchmarkTripwire(b *testing.B) {
+	// Change working directory
+	if err := os.Chdir("../../"); err != nil {
+		b.Fatal(err)
+	}
+
+	// Read config
+	cfg := config.ReadConfig("testdata/bench1/config.yml")
+
+	// Discard output
+	logger.Info.SetOutput(ioutil.Discard)
+	for i := 0; i < b.N; i++ {
+		run(cfg)
+	}
+
+	// Reset working directory
+	if err := os.Chdir("cmd/tripwire"); err != nil {
+		b.Fatal(err)
 	}
 }
 

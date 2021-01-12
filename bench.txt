@@ -1,0 +1,15 @@
+goos: darwin
+goarch: amd64
+pkg: tripwire/cmd/tripwire
+BenchmarkTripwire-12    	     150	   7872668 ns/op
+PASS
+ok  	tripwire/cmd/tripwire	2.199s
+?   	tripwire/pkg/collector	[no test files]
+?   	tripwire/pkg/config	[no test files]
+PASS
+ok  	tripwire/pkg/detector	0.096s
+?   	tripwire/pkg/metrics	[no test files]
+?   	tripwire/pkg/parser	[no test files]
+?   	tripwire/pkg/tcpstream	[no test files]
+?   	tripwire/pkg/util/bits	[no test files]
+?   	tripwire/pkg/util/logger	[no test files]

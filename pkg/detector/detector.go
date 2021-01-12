@@ -1,10 +1,11 @@
 package detector
 
 import (
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"strings"
-	"tripwire/config"
+	"tripwire/pkg/config"
 
 	"github.com/Kkevsterrr/gopacket"
 	"github.com/Kkevsterrr/gopacket/layers"
@@ -55,7 +56,7 @@ type Detector interface {
 	json.Marshaler
 	Label() string // metrics label
 	ProcessPacket(packet gopacket.Packet, tcp *layers.TCP, ci gopacket.CaptureInfo, dir reassembly.TCPFlowDirection)
-	ProcessReassembled(sg *reassembly.ScatterGather, ac *reassembly.AssemblerContext)
+	ProcessReassembled(sg *reassembly.ScatterGather, ac *reassembly.AssemblerContext, dir reassembly.TCPFlowDirection)
 	ProtocolDetected() bool  // whether or not protocol is detected
 	HeuristicDetected() bool // whether or not heuristic detects disruption
 }
@@ -142,7 +143,10 @@ func (f *detectorFactory) BPFFilter() string {
 }
 
 func (f *detectorFactory) RelevantToConnection(net, transport gopacket.Flow) bool {
-	return transport.Dst().String() == fmt.Sprintf("%d", f.port)
+	if transport.EndpointType() == layers.EndpointTCPPort {
+		return f.port == binary.BigEndian.Uint16(transport.Dst().Raw())
+	}
+	return false
 }
 
 func (d *detector) String() string {
@@ -170,7 +174,8 @@ func (d *detector) ProcessPacket(packet gopacket.Packet, tcp *layers.TCP,
 	}
 }
 
-func (d *detector) ProcessReassembled(sg *reassembly.ScatterGather, ac *reassembly.AssemblerContext) {
+func (d *detector) ProcessReassembled(sg *reassembly.ScatterGather,
+	ac *reassembly.AssemblerContext, dir reassembly.TCPFlowDirection) {
 	// no current heuristics process the reassembled payload
 }
 

@@ -5,10 +5,10 @@ import (
 	"strconv"
 	"sync"
 
-	"tripwire/collector"
-	"tripwire/config"
-	"tripwire/detector"
-	"tripwire/util/logger"
+	"tripwire/pkg/collector"
+	"tripwire/pkg/config"
+	"tripwire/pkg/detector"
+	"tripwire/pkg/util/logger"
 
 	"github.com/Kkevsterrr/gopacket"
 	"github.com/Kkevsterrr/gopacket/layers"
@@ -41,6 +41,8 @@ type tcpStream struct {
 	// Parties in this connection
 	// (net with transport = stream unique identifier)
 	net, transport gopacket.Flow
+	// Whether or not the flow client and server should be reversed
+	reversed bool
 
 	detectors    []detector.Detector
 	collector    collector.Collector
@@ -63,15 +65,28 @@ func (f *tcpStreamFactory) New(net, transport gopacket.Flow, tcp *layers.TCP, ac
 	logger.Debug.Printf("%s %s: New Connection", net, transport)
 
 	var detectors []detector.Detector
+	var reversed bool
 	for _, df := range f.detectorFactories {
 		if df.RelevantToConnection(net, transport) {
 			detectors = append(detectors, df.NewDetector(net, transport, tcp))
+		}
+	}
+	if len(detectors) == 0 {
+		// The stream wasn't relevant to any detectors, so try in the reverse direction.
+		reversed = true
+		net = net.Reverse()
+		transport = transport.Reverse()
+		for _, df := range f.detectorFactories {
+			if df.RelevantToConnection(net, transport) {
+				detectors = append(detectors, df.NewDetector(net, transport, tcp))
+			}
 		}
 	}
 
 	return &tcpStream{
 		net:       net,
 		transport: transport,
+		reversed:  reversed,
 
 		detectors:    detectors,
 		collector:    f.collectorFactory.NewCollector(net, transport, tcp),
@@ -81,6 +96,10 @@ func (f *tcpStreamFactory) New(net, transport gopacket.Flow, tcp *layers.TCP, ac
 
 func (t *tcpStream) Accept(packet gopacket.Packet, tcp *layers.TCP, ci gopacket.CaptureInfo, dir reassembly.TCPFlowDirection,
 	nextSeq reassembly.Sequence, start *bool, ac reassembly.AssemblerContext) bool {
+
+	if t.reversed {
+		dir = dir.Reverse()
+	}
 
 	// Determine the flow direction
 	var dirString string
@@ -104,6 +123,10 @@ func (t *tcpStream) ReassembledSG(sg reassembly.ScatterGather, ac reassembly.Ass
 	dir, start, end, skip := sg.Info()
 	length, saved := sg.Lengths()
 
+	if t.reversed {
+		dir = dir.Reverse()
+	}
+
 	// Determine the flow direction
 	var dirString string
 	if dir == reassembly.TCPDirClientToServer {
@@ -117,7 +140,7 @@ func (t *tcpStream) ReassembledSG(sg reassembly.ScatterGather, ac reassembly.Ass
 		dirString, length, start, end, skip, saved, sgStats.Packets,
 		sgStats.Chunks, sgStats.OverlapBytes, sgStats.OverlapPackets)
 
-	t.collector.ProcessReassembled(sg, ac)
+	t.collector.ProcessReassembled(sg, ac, dir)
 
 }
 

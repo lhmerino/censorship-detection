@@ -23,9 +23,11 @@ detectors:
 collector:
   fields:
     - IP
+    - Ports
+    - Direction
+    - Timestamp
     - IPID
     - TTL
-    - Ports
     - Flags
     - SeqNum
     - Payload

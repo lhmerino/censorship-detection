@@ -1,7 +1,7 @@
 package detector
 
 import (
-	"tripwire/util/bits"
+	"tripwire/pkg/util/bits"
 
 	"github.com/Kkevsterrr/gopacket/layers"
 	"github.com/Kkevsterrr/gopacket/reassembly"

@@ -9,19 +9,19 @@ import (
 	"net/http"
 	"strings"
 
-	"tripwire/collector"
-	"tripwire/config"
-	"tripwire/detector"
-	"tripwire/metrics"
-	"tripwire/parser"
-	"tripwire/tcpstream"
-	"tripwire/util/logger"
+	"tripwire/pkg/collector"
+	"tripwire/pkg/config"
+	"tripwire/pkg/detector"
+	"tripwire/pkg/metrics"
+	"tripwire/pkg/parser"
+	"tripwire/pkg/tcpstream"
+	"tripwire/pkg/util/logger"
 
 	"github.com/pkg/errors"
 )
 
 var (
-	configFile = flag.String("config", "config/config.yml", "Config file location")
+	configFile = flag.String("config", "configs/config.yml", "Config file location")
 	pcapFile   = flag.String("pcap", "", "PCAP file")
 	iface      = flag.String("iface", "", "Interface to get packets from")
 	bpfFilter  = flag.String("bpf", "", "Override BPFFilter")

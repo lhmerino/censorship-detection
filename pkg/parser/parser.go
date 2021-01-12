@@ -5,8 +5,8 @@ import (
 	"os/signal"
 	"time"
 
-	"tripwire/config"
-	"tripwire/util/logger"
+	"tripwire/pkg/config"
+	"tripwire/pkg/util/logger"
 
 	"github.com/Kkevsterrr/gopacket"
 	"github.com/Kkevsterrr/gopacket/layers"
@@ -70,7 +70,7 @@ func (p *parser) Run() error {
 		logger.Info.Printf("Read from pcap: %q", p.pcapFile)
 		handle, err = pcap.OpenOffline(p.pcapFile)
 	} else {
-		logger.Info.Printf("Starting capture on interface %q", p.iface)
+		logger.Info.Printf("Starting capture on interface %q with filter %v", p.iface, p.filter)
 		handle, err = pcap.OpenLive(p.iface, int32(p.snaplen), true, pcap.BlockForever)
 	}
 	if err != nil {

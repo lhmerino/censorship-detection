@@ -45,12 +45,15 @@ detectors:
 collector:
   fields:
     - IP
+    - Ports
+    - Direction
+    - Timestamp
     - IPID
     - TTL
-    - Ports
     - Flags
     - SeqNum
     - Payload
     - SNI
+  truncate_ips: true
   cli_maxlen: 0
   srv_maxlen: 0
