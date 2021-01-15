@@ -1,0 +1,42 @@
+# Config File
+
+## Logger Parameters
+logger:
+  debug: false
+  outform: json
+
+## Parser Parameters
+parser:
+  input:
+    pcap: testdata/tripwire-1597963966.pcap
+  flush: 5
+  tcp:
+    allowmissinginit: true # Support streams without SYN/SYN+ACK/ACK sequence
+
+# Detectors
+detectors:
+  - heuristic: RSTACKs
+    protocol: HTTP
+    port: 80
+  - heuristic: RSTACKs
+    protocol: HTTPS
+    port: 443 
+
+# Data Collector
+collector:
+  fields:
+    - IP
+    - Ports
+    - Direction
+    - Timestamp
+    - IPID
+    - TTL
+    - Flags
+    - SeqNum
+    - Payload
+    - SNI
+    - Host
+  truncate_ips: true
+  max_packets: 10
+  cli_maxlen: 500
+  srv_maxlen: 500

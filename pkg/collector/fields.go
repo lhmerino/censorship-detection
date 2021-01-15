@@ -93,7 +93,7 @@ func (p *ipidCollector) processPacket(packet gopacket.Packet) {
 }
 
 func (p *ipidCollector) MarshalJSON() ([]byte, error) {
-	return json.Marshal(p)
+	return json.Marshal(*p)
 }
 
 func (p *ipidCollector) String() string {
@@ -113,7 +113,7 @@ func (p *directionCollector) processPacket(dir reassembly.TCPFlowDirection) {
 }
 
 func (p *directionCollector) MarshalJSON() ([]byte, error) {
-	return json.Marshal(p)
+	return json.Marshal(*p)
 }
 
 func (p *directionCollector) String() string {
@@ -223,7 +223,7 @@ func (p *flagCollector) processPacket(tcp *layers.TCP) {
 }
 
 func (p *flagCollector) MarshalJSON() ([]byte, error) {
-	return json.Marshal(p)
+	return json.Marshal(*p)
 }
 
 func (p *flagCollector) String() string {
@@ -353,7 +353,7 @@ func (p *hostCollector) String() string {
 }
 
 func (p *hostCollector) MarshalJSON() ([]byte, error) {
-	return json.Marshal(p)
+	return json.Marshal(*p)
 }
 
 // sniCollector collects TLS server name extensions
@@ -368,7 +368,7 @@ func (p *sniCollector) String() string {
 }
 
 func (p *sniCollector) MarshalJSON() ([]byte, error) {
-	return json.Marshal(p)
+	return json.Marshal(*p)
 }
 
 func (p *sniCollector) processPacket(packet gopacket.Packet) {
