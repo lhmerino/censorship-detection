@@ -51,6 +51,7 @@ class Analyze:
 
         # Finished extracting flags from each connection, summarize it now
         summary = {}
+        summary_values = {}
         for src_port in connections:
             key = ''
             for flag in sorted(connections[src_port].keys()):
@@ -58,13 +59,16 @@ class Analyze:
 
             if key not in summary:
                 summary[key] = [src_port]
+                summary_values[key] = 1
             else:
                 summary[key].append(src_port)
+                summary_values[key] += 1
 
         #summary = sorted(summary.items(), key=lambda x: x[1], reverse=True)
         pprint(connections)
         pprint(len(connections))
         pprint(summary)
+        pprint(summary_values)
         # flags = {}
         # for connection in connections:
         #     for flag in

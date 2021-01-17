@@ -7,6 +7,7 @@ import (
 	"github.com/Kkevsterrr/gopacket/reassembly"
 )
 
+### RST-ACK heuristic
 const (
 	PSH     = 0
 	RSTACK1 = 1
@@ -51,6 +52,46 @@ func (r *rstAcks) detected() bool {
 	} else if bits.HasBit8(r.flags, PSH) && // PSH
 		bits.HasBit8(r.flags, RSTACK1) && // First RST-ACK
 		bits.HasBit8(r.flags, RSTACK2) { // Second RST-ACK
+		return true
+	}
+
+	return false
+}
+
+### Heu
+const (
+
+)
+
+
+const (
+	W_PSH = 0
+	W_WIN = 1
+)
+
+type window struct {
+	flags uint8 // 11XX XXXX (two used bits)
+}
+
+func NewWindow() *window {
+	return &window{}
+}
+
+func (h *window) processPacket(tcp *layers.TCP, dir reassembly.TCPFlowDirection) {
+	if dir != reassembly.TCPDirClientToServer {
+		return
+	}
+
+	if tcp.PSH {
+		h.flags = bits.SetBit8(h.flags, W_PSH)
+	} else if tcp.RST && tcp.Window == 16 {
+		h.flags = bits.SetBit8(h.flags, W_WIN)
+	}
+}
+
+func (h *window) detected() bool {
+	if bits.HasBit8(h.flags, W_PSH) && // PSH
+		bits.HasBit8(h.flags, W_WIN) {
 		return true
 	}
 

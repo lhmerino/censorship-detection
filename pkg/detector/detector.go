@@ -37,6 +37,7 @@ type HeuristicType int
 const (
 	HeuristicAny HeuristicType = iota
 	HeuristicRSTACKs
+	HeuristicWIN
 )
 
 var heuristicMap = map[string]HeuristicType{
@@ -83,6 +84,7 @@ type detector struct {
 	// heuristics
 	anyHeuristic bool
 	rstacks      *rstAcks
+	win          *window
 }
 
 func NewDetectorFactory(cfg config.DetectorConfig) (DetectorFactory, error) {
@@ -128,6 +130,8 @@ func (f *detectorFactory) NewDetector(net, transport gopacket.Flow, tcp *layers.
 	switch f.heuristic {
 	case HeuristicRSTACKs:
 		d.rstacks = newRSTACKs()
+	case HeuristicWIN:
+		d.win = NewWindow()
 	case HeuristicAny:
 		d.anyHeuristic = true
 	}
@@ -172,6 +176,9 @@ func (d *detector) ProcessPacket(packet gopacket.Packet, tcp *layers.TCP,
 	if d.rstacks != nil {
 		d.rstacks.processPacket(tcp, dir)
 	}
+	if d.win != nil {
+		d.win.processPacket(tcp, dir)
+	}
 }
 
 func (d *detector) ProcessReassembled(sg *reassembly.ScatterGather,
@@ -206,6 +213,9 @@ func (d *detector) HeuristicDetected() (detected bool) {
 		return true
 	}
 	if d.rstacks != nil && d.rstacks.detected() {
+		detected = true
+	}
+	if d.win != nil && d.win.detected() {
 		detected = true
 	}
 	return

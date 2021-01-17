@@ -182,7 +182,7 @@ class CensorshipTest:
         go_execution = "../bin/tripwire --config-file resources/config_china_http.yml" + \
                        " --pcap " + pcap_file + \
                        " --bpf " + "\"tcp and port " + str(local_port) + "\"" + \
-                       " --log-file \"" + log_file + "\""
+                       " > \"" + log_file + "\""
         if DEBUG:
             pprint(go_execution)
         censorship_detect_app = subprocess.Popen(go_execution, shell=True, stdout=subprocess.PIPE,
@@ -205,7 +205,7 @@ def build_go_measurement_app():
     """
     Builds go measurement app to make sure the latest version is compiled
     """
-    process = subprocess.Popen("cd ../app && /usr/local/go/bin/go build -o ./bin/tripwire ./cmd/tripwire", shell=True, stdout=subprocess.PIPE,
+    process = subprocess.Popen("cd .. && /usr/local/go/bin/go build -o ./bin/tripwire ./cmd/tripwire", shell=True, stdout=subprocess.PIPE,
                                stderr=subprocess.PIPE)
     process.wait()
     if DEBUG:
