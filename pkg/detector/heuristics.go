@@ -7,7 +7,7 @@ import (
 	"github.com/Kkevsterrr/gopacket/reassembly"
 )
 
-### RST-ACK heuristic
+// RST--RST-ACK heuristic
 const (
 	PSH     = 0
 	RSTACK1 = 1
@@ -58,11 +58,47 @@ func (r *rstAcks) detected() bool {
 	return false
 }
 
-### Heu
+// RST-ACK Heuristic
 const (
-
+	RA_PSH = 0
+	R_RSTACK1 = 1
+	R_RSTACK2 = 2
+	R_RSTACK3 = 3
 )
 
+type rst struct {
+	flags uint8 // 1111 11XX (two unused bits)
+}
+
+func newRST() *rst {
+	return &rst{}
+}
+
+func (r *rst) processPacket(tcp *layers.TCP, dir reassembly.TCPFlowDirection) {
+	if dir != reassembly.TCPDirClientToServer {
+		return
+	}
+	if tcp.PSH {
+		r.flags = bits.SetBit8(r.flags, PSH)
+	} else if tcp.RST && tcp.ACK && !bits.HasBit8(r.flags, RSTACK1) {
+		r.flags = bits.SetBit8(r.flags, RSTACK1)
+	} else if tcp.RST && tcp.ACK && !bits.HasBit8(r.flags, RSTACK2) {
+		r.flags = bits.SetBit8(r.flags, RSTACK2)
+	} else if tcp.RST && tcp.ACK && !bits.HasBit8(r.flags, RSTACK3) {
+		r.flags = bits.SetBit8(r.flags, RSTACK3)
+	}
+}
+
+func (r *rst) detected() bool {
+	if !bits.HasBit8(r.flags, PSH) && // no PSH
+		bits.HasBit8(r.flags, RSTACK1) && // First RST-ACK
+		bits.HasBit8(r.flags, RSTACK2) && // Second RST-ACK
+		bits.HasBit8(r.flags, RSTACK3) { // Third RST-ACK
+		return true
+	}
+
+	return false
+}
 
 const (
 	W_PSH = 0
