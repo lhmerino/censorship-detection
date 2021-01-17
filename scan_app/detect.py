@@ -194,7 +194,7 @@ class CensorshipTest:
         with open(log_file, 'r') as fp:
             line = fp.readline()
             while line:
-                if "Censorship Detected" in line:
+                if "http_80_rstacks: 1 total" in line:
                     return True
                 line = fp.readline()
 
