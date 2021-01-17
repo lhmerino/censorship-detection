@@ -77,4 +77,5 @@ class Analyze:
 
 
 if __name__ == '__main__':
-    Analyze('../testdata/tripwire-1597963966.pcap')
+    #Analyze('../testdata/tripwire-1597963966.pcap')
+    Analyze(None, "results/AS_50_results.json")

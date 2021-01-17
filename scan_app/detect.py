@@ -168,7 +168,7 @@ class CensorshipTest:
         Runs the go measurement app on the pcap generated from the
         HTTP request and returns whether Censorship was detected.
         """
-        go_execution = "../build/measurement --config-file resources/config_china_http.yml" + \
+        go_execution = "../bin/tripwire --config-file resources/config_china_http.yml" + \
                        " --pcap " + pcap_file + \
                        " --bpf " + "\"tcp and port " + str(local_port) + "\"" + \
                        " --log-file \"" + log_file + "\""
@@ -194,7 +194,7 @@ def build_go_measurement_app():
     """
     Builds go measurement app to make sure the latest version is compiled
     """
-    process = subprocess.Popen("cd ../app && /usr/local/go/bin/go build -o ../build/measurement -a .", shell=True, stdout=subprocess.PIPE,
+    process = subprocess.Popen("cd ../app && /usr/local/go/bin/go build -o ./bin/tripwire ./cmd/tripwire", shell=True, stdout=subprocess.PIPE,
                                stderr=subprocess.PIPE)
     process.wait()
     if DEBUG:
