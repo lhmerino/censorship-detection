@@ -32,10 +32,11 @@ def main(config):
 
     results = {}
     for ASN in ASN_IPs:
+        count = 1
         for data in ASN_IPs[ASN]:
             pprint("[*] " + str(count) + " [Scan App] IP:" + data['IP'] + " | Domain: " + data['Domain'])
             detect_censorship_test = CensorshipTest(data['IP'], data['Domain'], output_path)
-            detect_results = detect_censorship_test.run()
+            detect_results, censored = detect_censorship_test.run()
 
             results[data['IP']] = {
                 'IP': data['IP'],
@@ -43,6 +44,12 @@ def main(config):
                 'ASN': ASN,
                 'Results': detect_results
             }
+
+            if censored == True:
+                count += 1
+
+            if count >= 50:
+                continue
 
     with open(config.results_file, 'w') as outfile:
         json.dump(results, outfile, indent=4)
@@ -66,6 +73,7 @@ class CensorshipTest:
         """
         # Choose random local port for request
         local_port = int(random.uniform(1025, 65530))
+        censored_all = False
 
         results = []
         start_port = local_port
@@ -104,7 +112,10 @@ class CensorshipTest:
 
             local_port += 1
 
-        return results
+            if censored:
+                censored_all = True
+
+        return results, censored_all
 
     @staticmethod
     def start_tcpdump(pcap_file, port=5000):
