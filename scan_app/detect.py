@@ -49,7 +49,7 @@ def main(config):
                 count += 1
 
             if count >= 50:
-                continue
+                break
 
     with open(config.results_file, 'w') as outfile:
         json.dump(results, outfile, indent=4)
