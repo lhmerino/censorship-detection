@@ -16,7 +16,7 @@ Demo run (pcap) of a censored flow
 
 ```shell script
 go build -o ./bin/tripwire ./cmd/tripwire
-bin/tripwire -config_file config/config.yml
+bin/tripwire -config configs/config.yml
 ```
 
 ### Tests
