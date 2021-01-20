@@ -66,15 +66,15 @@ const (
 	R_RSTACK3 = 3
 )
 
-type rst struct {
+type rstAckRes struct {
 	flags uint8 // 1111 11XX (two unused bits)
 }
 
-func newRST() *rst {
-	return &rst{}
+func newRstAckRes() *rstAckRes {
+	return &rstAckRes{}
 }
 
-func (r *rst) processPacket(tcp *layers.TCP, dir reassembly.TCPFlowDirection) {
+func (r *rstAckRes) processPacket(tcp *layers.TCP, dir reassembly.TCPFlowDirection) {
 	if dir != reassembly.TCPDirClientToServer {
 		return
 	}
@@ -89,7 +89,7 @@ func (r *rst) processPacket(tcp *layers.TCP, dir reassembly.TCPFlowDirection) {
 	}
 }
 
-func (r *rst) detected() bool {
+func (r *rstAckRes) detected() bool {
 	if !bits.HasBit8(r.flags, PSH) && // no PSH
 		bits.HasBit8(r.flags, RSTACK1) && // First RST-ACK
 		bits.HasBit8(r.flags, RSTACK2) && // Second RST-ACK

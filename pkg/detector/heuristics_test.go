@@ -309,3 +309,85 @@ func TestUnitWin(t *testing.T) {
 			heuristic.flags, heuristic.detected())
 	}
 }
+
+func TestUnitRstAckRes(t *testing.T) {
+	heuristic := newRstAckRes()
+
+	tcp := &layers.TCP{
+		SYN: true,
+	}
+	dir := reassembly.TCPDirClientToServer
+	heuristic.processPacket(tcp, dir)
+	if heuristic.flags != 0 || heuristic.detected() != false {
+		t.Errorf("[RstAckRes] Flag, expected 0, got %d or Censorship Triggered, expected false got %t",
+			heuristic.flags, heuristic.detected())
+	}
+
+	tcp = &layers.TCP{
+		SYN: true,
+		ACK: true,
+	}
+	dir = reassembly.TCPDirServerToClient
+	heuristic.processPacket(tcp, dir)
+	if heuristic.flags != 0 || heuristic.detected() != false {
+		t.Errorf("[RstAckRes] Flag, expected 0, got %d or Censorship Triggered, expected false got %t",
+			heuristic.flags, heuristic.detected())
+	}
+
+	tcp = &layers.TCP{
+		ACK: true,
+	}
+	dir = reassembly.TCPDirClientToServer
+	heuristic.processPacket(tcp, dir)
+	if heuristic.flags != 0 || heuristic.detected() != false {
+		t.Errorf("[RstAckRes] Flag, expected 0, got %d or Censorship Triggered, expected false got %t",
+			heuristic.flags, heuristic.detected())
+	}
+
+	// First RST-ACK
+	tcp = &layers.TCP{
+		RST: true,
+		ACK: true,
+	}
+	dir = reassembly.TCPDirClientToServer
+	heuristic.processPacket(tcp, dir)
+	if heuristic.flags != 2 || heuristic.detected() != false {
+		t.Errorf("[RstAckRes] Flag, expected 2, got %d or Censorship Triggered, expected false got %t",
+			heuristic.flags, heuristic.detected())
+	}
+
+	// Second RST-ACK
+	tcp = &layers.TCP{
+		RST: true,
+		ACK: true,
+	}
+	dir = reassembly.TCPDirClientToServer
+	heuristic.processPacket(tcp, dir)
+	if heuristic.flags != 6 || heuristic.detected() != false {
+		t.Errorf("[RstAckRes] Flag, expected 6, got %d or Censorship Triggered, expected false got %t",
+			heuristic.flags, heuristic.detected())
+	}
+
+	// Third RST-ACK
+	tcp = &layers.TCP{
+		RST: true,
+		ACK: true,
+	}
+	dir = reassembly.TCPDirClientToServer
+	heuristic.processPacket(tcp, dir)
+	if heuristic.flags != 14 || heuristic.detected() != true {
+		t.Errorf("[RstAckRes] Flag, expected 14, got %d or Censorship Triggered, expected true got %t",
+			heuristic.flags, heuristic.detected())
+	}
+
+	// PSH simulating a censored query
+	tcp = &layers.TCP{
+		PSH: true,
+	}
+	dir = reassembly.TCPDirClientToServer
+	heuristic.processPacket(tcp, dir)
+	if heuristic.flags != 15 || heuristic.detected() != false {
+		t.Errorf("[RstAckRes] Flag, expected 1, got %d or Censorship Triggered, expected false got %t",
+			heuristic.flags, heuristic.detected())
+	}
+}

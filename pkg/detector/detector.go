@@ -37,12 +37,14 @@ type HeuristicType int
 const (
 	HeuristicAny HeuristicType = iota
 	HeuristicRSTACKs
+	HeuristicRSTACKResidual
 	HeuristicWIN
 )
 
 var heuristicMap = map[string]HeuristicType{
 	"any":     HeuristicAny,
 	"rstacks": HeuristicRSTACKs,
+	"rstackres": HeuristicRSTACKResidual,
 	"win": HeuristicWIN,
 }
 
@@ -85,6 +87,7 @@ type detector struct {
 	// heuristics
 	anyHeuristic bool
 	rstacks      *rstAcks
+	rstackres    *rstAckRes
 	win          *window
 }
 
@@ -133,6 +136,8 @@ func (f *detectorFactory) NewDetector(net, transport gopacket.Flow, tcp *layers.
 		d.rstacks = newRSTACKs()
 	case HeuristicWIN:
 		d.win = NewWindow()
+	case HeuristicRSTACKResidual:
+		d.rstackres = newRstAckRes()
 	case HeuristicAny:
 		d.anyHeuristic = true
 	}
