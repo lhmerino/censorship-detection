@@ -43,6 +43,7 @@ const (
 var heuristicMap = map[string]HeuristicType{
 	"any":     HeuristicAny,
 	"rstacks": HeuristicRSTACKs,
+	"win": HeuristicWIN,
 }
 
 type DetectorFactory interface {

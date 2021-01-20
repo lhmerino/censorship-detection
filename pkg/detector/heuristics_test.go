@@ -226,3 +226,86 @@ func TestWin(t *testing.T) {
 			heuristic.flags, heuristic.detected())
 	}
 }
+
+func TestUnitWin(t *testing.T) {
+	heuristic := NewWindow()
+
+	tcp := &layers.TCP{
+		SYN: true,
+	}
+	dir := reassembly.TCPDirClientToServer
+	heuristic.processPacket(tcp, dir)
+	if heuristic.flags != 0 || heuristic.detected() != false {
+		t.Errorf("[WIN] Flag, expected 0, got %d or Censorship Triggered, expected false got %t",
+			heuristic.flags, heuristic.detected())
+	}
+
+	tcp = &layers.TCP{
+		SYN: true,
+		ACK: true,
+	}
+	dir = reassembly.TCPDirServerToClient
+	heuristic.processPacket(tcp, dir)
+	if heuristic.flags != 0 || heuristic.detected() != false {
+		t.Errorf("[WIN] Flag, expected 0, got %d or Censorship Triggered, expected false got %t",
+			heuristic.flags, heuristic.detected())
+	}
+
+	tcp = &layers.TCP{
+		ACK: true,
+	}
+	dir = reassembly.TCPDirClientToServer
+	heuristic.processPacket(tcp, dir)
+	if heuristic.flags != 0 || heuristic.detected() != false {
+		t.Errorf("[WIN] Flag, expected 0, got %d or Censorship Triggered, expected false got %t",
+			heuristic.flags, heuristic.detected())
+	}
+
+	// PSH simulating a censored query
+	tcp = &layers.TCP{
+		PSH: true,
+	}
+	dir = reassembly.TCPDirClientToServer
+	heuristic.processPacket(tcp, dir)
+	if heuristic.flags != 1 || heuristic.detected() != false {
+		t.Errorf("[WIN] Flag, expected 1, got %d or Censorship Triggered, expected false got %t",
+			heuristic.flags, heuristic.detected())
+	}
+
+	// ACK the PSH
+	tcp = &layers.TCP{
+		ACK: true,
+	}
+	dir = reassembly.TCPDirServerToClient
+	heuristic.processPacket(tcp, dir)
+	if heuristic.flags != 1 || heuristic.detected() != false {
+		t.Errorf("[WIN] Flag, expected 1, got %d or Censorship Triggered, expected false got %t",
+			heuristic.flags, heuristic.detected())
+	}
+
+	// First RST-ACK but incorrect window size
+	tcp = &layers.TCP{
+		RST: true,
+		ACK: true,
+		Window: 30,
+	}
+	dir = reassembly.TCPDirClientToServer
+	heuristic.processPacket(tcp, dir)
+	if heuristic.flags != 1 || heuristic.detected() != false {
+		t.Errorf("[WIN] Flag, expected 1, got %d or Censorship Triggered, expected false got %t",
+			heuristic.flags, heuristic.detected())
+	}
+
+	// Second RST-ACK with correct window size
+	tcp = &layers.TCP{
+		RST: true,
+		ACK: true,
+		Window: 16,
+	}
+	dir = reassembly.TCPDirClientToServer
+	heuristic.processPacket(tcp, dir)
+	if heuristic.flags != 3 || heuristic.detected() != true {
+		t.Errorf("[WIN] Flag, expected 3, got %d or Censorship Triggered, expected true got %t",
+			heuristic.flags, heuristic.detected())
+	}
+}
