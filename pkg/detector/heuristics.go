@@ -58,48 +58,6 @@ func (r *rstAcks) detected() bool {
 	return false
 }
 
-// RST-ACK Heuristic
-const (
-	RA_PSH = 0
-	R_RSTACK1 = 1
-	R_RSTACK2 = 2
-	R_RSTACK3 = 3
-)
-
-type rstAckRes struct {
-	flags uint8 // 1111 11XX (two unused bits)
-}
-
-func newRstAckRes() *rstAckRes {
-	return &rstAckRes{}
-}
-
-func (r *rstAckRes) processPacket(tcp *layers.TCP, dir reassembly.TCPFlowDirection) {
-	if dir != reassembly.TCPDirClientToServer {
-		return
-	}
-	if tcp.PSH {
-		r.flags = bits.SetBit8(r.flags, PSH)
-	} else if tcp.RST && tcp.ACK && !bits.HasBit8(r.flags, RSTACK1) {
-		r.flags = bits.SetBit8(r.flags, RSTACK1)
-	} else if tcp.RST && tcp.ACK && !bits.HasBit8(r.flags, RSTACK2) {
-		r.flags = bits.SetBit8(r.flags, RSTACK2)
-	} else if tcp.RST && tcp.ACK && !bits.HasBit8(r.flags, RSTACK3) {
-		r.flags = bits.SetBit8(r.flags, RSTACK3)
-	}
-}
-
-func (r *rstAckRes) detected() bool {
-	if !bits.HasBit8(r.flags, PSH) && // no PSH
-		bits.HasBit8(r.flags, RSTACK1) && // First RST-ACK
-		bits.HasBit8(r.flags, RSTACK2) && // Second RST-ACK
-		bits.HasBit8(r.flags, RSTACK3) { // Third RST-ACK
-		return true
-	}
-
-	return false
-}
-
 const (
 	W_PSH = 0
 	W_WIN = 1
