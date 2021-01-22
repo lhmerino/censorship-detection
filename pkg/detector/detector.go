@@ -37,13 +37,11 @@ type HeuristicType int
 const (
 	HeuristicAny HeuristicType = iota
 	HeuristicRSTACKs
-	HeuristicRSTACKResidual
 	HeuristicWIN
 )
 
 var heuristicMap = map[string]HeuristicType{
 	"any":     HeuristicAny,
-	"rstacks": HeuristicRSTACKs,
 	"win": HeuristicWIN,
 }
 
