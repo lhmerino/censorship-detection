@@ -18,15 +18,43 @@ func (p *http) detected() bool {
 }
 
 // https detects HTTPS streams
-type https struct{}
+type https struct {
+	isHTTPS bool
+}
 
 func newHTTPS() *https {
 	return &https{}
 }
 
+func (p *https) processPacket(packet gopacket.Packet) {
+	if p.isHTTPS {
+		// only process packet if we haven't already detected HTTPS
+		return
+	}
+	if packet.ApplicationLayer() != nil {
+		var tls layers.TLS
+		var decoded []gopacket.LayerType
+		parser := gopacket.NewDecodingLayerParser(layers.LayerTypeTLS, &tls)
+		err := parser.DecodeLayers(packet.ApplicationLayer().LayerContents(), &decoded)
+		if err != nil {
+			return
+		}
+		for _, layerType := range decoded {
+			if layerType == layers.LayerTypeTLS {
+				if len(tls.Handshake) > 0 {
+					hs := tls.Handshake[0]
+					if hs.HandshakeType == 1 {
+						p.isHTTPS = true
+						return
+					}
+				}
+			}
+		}
+	}
+}
+
 func (p *https) detected() bool {
-	// TODO: process packets to detect protocol
-	return true
+	return p.isHTTPS
 }
 
 // ech detects HTTPS streams with the encrypted client hello extension
@@ -51,19 +79,25 @@ func (p *ech) processPacket(packet gopacket.Packet) {
 			return
 		}
 		for _, layerType := range decoded {
-			switch layerType {
-			case layers.LayerTypeTLS:
+			if layerType == layers.LayerTypeTLS {
 				if len(tls.Handshake) > 0 {
 					hs := tls.Handshake[0]
 					if hs.HandshakeType == 1 {
 						clientHello = hs.ClientHello
+						break
 					}
 				}
 			}
 		}
 	}
 	if clientHello != nil {
-		p.isECH = clientHello.EncryptedClientHello
+		for _, ext := range clientHello.Extensions {
+			// https://tlswg.org/draft-ietf-tls-esni/draft-ietf-tls-esni.html
+			if ext == 0xfe08 {
+				p.isECH = true
+				return
+			}
+		}
 	}
 }
 

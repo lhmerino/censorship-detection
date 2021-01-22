@@ -41,9 +41,9 @@ const (
 )
 
 var heuristicMap = map[string]HeuristicType{
-	"any": HeuristicAny,
+	"any":     HeuristicAny,
 	"rstacks": HeuristicRSTACKs,
-	"win": HeuristicWIN,
+	"win":     HeuristicWIN,
 }
 
 type DetectorFactory interface {
@@ -169,6 +169,9 @@ func (d *detector) Label() string {
 func (d *detector) ProcessPacket(packet gopacket.Packet, tcp *layers.TCP,
 	ci gopacket.CaptureInfo, dir reassembly.TCPFlowDirection) {
 	// protocols
+	if d.https != nil {
+		d.https.processPacket(packet)
+	}
 	if d.ech != nil {
 		d.ech.processPacket(packet)
 	}

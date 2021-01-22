@@ -36,5 +36,6 @@ collector:
     - Payload
     - SNI
     - Host
+    - Extensions
   cli_maxlen: 500
   srv_maxlen: 500

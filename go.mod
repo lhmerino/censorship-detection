@@ -3,7 +3,7 @@ module tripwire
 go 1.15
 
 require (
-	github.com/Kkevsterrr/gopacket v1.1.23
+	github.com/Kkevsterrr/gopacket v1.1.24
 	github.com/google/go-cmp v0.5.2 // indirect
 	github.com/kr/pretty v0.2.0 // indirect
 	github.com/pkg/errors v0.8.1

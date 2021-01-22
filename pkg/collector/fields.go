@@ -354,7 +354,7 @@ func (p *hostCollector) MarshalJSON() ([]byte, error) {
 	return json.Marshal(*p)
 }
 
-// sniCollector collects TLS server name extensions
+// sniCollector collects the TLS server name extension value
 type sniCollector string
 
 func newSNICollector() *sniCollector {
@@ -394,5 +394,49 @@ func (p *sniCollector) processPacket(packet gopacket.Packet) {
 	}
 	if clientHello != nil {
 		*p = sniCollector(clientHello.ServerName)
+	}
+}
+
+// tlsExtensionsCollector collects TLS client hello extensions
+type tlsExtensionsCollector []uint16
+
+func newTLSExtensionsCollector() *tlsExtensionsCollector {
+	return new(tlsExtensionsCollector)
+}
+
+func (p *tlsExtensionsCollector) String() string {
+	return strings.Join(strings.Fields(fmt.Sprintf("%d", *p)), ",")
+}
+
+func (p *tlsExtensionsCollector) MarshalJSON() ([]byte, error) {
+	return json.Marshal(*p)
+}
+
+func (p *tlsExtensionsCollector) processPacket(packet gopacket.Packet) {
+	var clientHello *layers.TLSClientHello
+
+	if packet.ApplicationLayer() != nil {
+		var tls layers.TLS
+		var decoded []gopacket.LayerType
+		parser := gopacket.NewDecodingLayerParser(layers.LayerTypeTLS, &tls)
+		err := parser.DecodeLayers(packet.ApplicationLayer().LayerContents(), &decoded)
+		if err != nil {
+			return
+		}
+		for _, layerType := range decoded {
+			switch layerType {
+			case layers.LayerTypeTLS:
+				if len(tls.Handshake) > 0 {
+					hs := tls.Handshake[0]
+					if hs.HandshakeType == 1 {
+						clientHello = hs.ClientHello
+						break
+					}
+				}
+			}
+		}
+	}
+	if clientHello != nil {
+		*p = tlsExtensionsCollector(clientHello.Extensions)
 	}
 }

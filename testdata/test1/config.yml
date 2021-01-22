@@ -38,5 +38,6 @@ collector:
     - SeqNum
     - Payload
     - SNI
+    - Extensions
   cli_maxlen: 500
   srv_maxlen: 500
