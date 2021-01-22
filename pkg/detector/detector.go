@@ -41,7 +41,8 @@ const (
 )
 
 var heuristicMap = map[string]HeuristicType{
-	"any":     HeuristicAny,
+	"any": HeuristicAny,
+	"rstacks": HeuristicRSTACKs,
 	"win": HeuristicWIN,
 }
 
