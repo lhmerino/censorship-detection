@@ -156,6 +156,9 @@ func (c *collector) ProcessPacket(packet gopacket.Packet, tcp *layers.TCP,
 	if c.seqnum != nil {
 		c.seqnum.processPacket(tcp)
 	}
+	if c.host != nil {
+		c.host.processPacket(packet)
+	}
 	if c.sni != nil {
 		c.sni.processPacket(packet)
 	}
@@ -169,9 +172,6 @@ func (c *collector) ProcessReassembled(sg reassembly.ScatterGather,
 
 	if c.payload != nil {
 		c.payload.processReassembled(dir, length, payload)
-	}
-	if c.host != nil {
-		c.host.processReassembled(dir, length, payload)
 	}
 }
 

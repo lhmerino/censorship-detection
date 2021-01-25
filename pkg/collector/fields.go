@@ -335,17 +335,15 @@ func newHostCollector() *hostCollector {
 	return new(hostCollector)
 }
 
-func (p *hostCollector) processReassembled(dir reassembly.TCPFlowDirection, length int, payload []byte) {
-	if dir != reassembly.TCPDirClientToServer {
-		return
+func (p *hostCollector) processPacket(packet gopacket.Packet) {
+	if app := packet.ApplicationLayer(); app != nil {
+		buf := bufio.NewReader(bytes.NewReader(app.Payload()))
+		req, err := http.ReadRequest(buf)
+		if err != nil {
+			return
+		}
+		*p = hostCollector(req.Host)
 	}
-
-	buf := bufio.NewReader(bytes.NewReader(payload))
-	req, err := http.ReadRequest(buf)
-	if err != nil {
-		return
-	}
-	*p = hostCollector(req.Host)
 }
 
 func (p *hostCollector) String() string {
