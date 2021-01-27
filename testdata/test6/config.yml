@@ -1,21 +1,21 @@
 # Config File
 
+## Logger Parameters
+logger:
+  debug: false
+  outform: json
+
 ## Parser Parameters
 parser:
   input:
-    pcap: testdata/tripwire-1597963966.pcap
+    pcap: testdata/airtel_https_example.pcap
   flush: 5
-  tcp:
-    allowmissinginit: true # Support streams without SYN/SYN+ACK/ACK sequence
 
 # Detectors
 detectors:
-  - heuristic: RSTACKs
-    protocol: HTTP
+  - heuristic: WIN
+    protocol: HTTPS # yes, HTTPS on port 80
     port: 80
-  - heuristic: RSTACKs
-    protocol: HTTPS
-    port: 443
 
 # Data Collector
 collector:
@@ -30,5 +30,9 @@ collector:
     - SeqNum
     - Payload
     - SNI
+    - Host
+    - Extensions
+  truncate_ips: true
+  max_packets: 10
   cli_maxlen: 500
   srv_maxlen: 500

@@ -1,0 +1,9 @@
+INFO Initialized detectors
+INFO Initialized collectors
+INFO Running parser
+INFO Read from pcap: "testdata/airtel_example.pcap"
+INFO End of PCAP
+INFO global_packets: 48 tcp, 0 other
+INFO global_streams: 3 total, 3 disrupted
+INFO http_80_win: 3 total, 3 disrupted
+INFO Stopping metrics server

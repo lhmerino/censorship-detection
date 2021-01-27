@@ -1,93 +1,66 @@
 package detector
 
 import (
-	"tripwire/pkg/util/bits"
-
 	"github.com/Kkevsterrr/gopacket/layers"
 	"github.com/Kkevsterrr/gopacket/reassembly"
 )
 
-// RST--RST-ACK heuristic
-const (
-	PSH     = 0
-	RSTACK1 = 1
-	RSTACK2 = 2
-	RSTACK3 = 3
-	RST1    = 4
-	RST2    = 5
-)
-
-type rstAcks struct {
-	flags uint8 // 1111 11XX (two unused bits)
+// RST--RST-ACK heuristic, exhibited by the GFW (China)
+// https://conferences.sigcomm.org/imc/2017/papers/imc17-final59.pdf
+type rstacksHeuristic struct {
+	PSH, RSTACK1, RSTACK2, RSTACK3, RST1, RST2 bool
 }
 
-func newRSTACKs() *rstAcks {
-	return &rstAcks{}
+func newRSTACKsHeuristic() *rstacksHeuristic {
+	return &rstacksHeuristic{}
 }
 
-func (r *rstAcks) processPacket(tcp *layers.TCP, dir reassembly.TCPFlowDirection) {
+func (r *rstacksHeuristic) processPacket(tcp *layers.TCP, dir reassembly.TCPFlowDirection) {
 	if dir != reassembly.TCPDirClientToServer {
 		return
 	}
 	if tcp.PSH {
-		r.flags = bits.SetBit8(r.flags, PSH)
-	} else if tcp.RST && tcp.ACK && !bits.HasBit8(r.flags, RSTACK1) {
-		r.flags = bits.SetBit8(r.flags, RSTACK1)
-	} else if tcp.RST && tcp.ACK && !bits.HasBit8(r.flags, RSTACK2) {
-		r.flags = bits.SetBit8(r.flags, RSTACK2)
-	} else if tcp.RST && tcp.ACK && !bits.HasBit8(r.flags, RSTACK3) {
-		r.flags = bits.SetBit8(r.flags, RSTACK3)
-	} else if tcp.RST && !tcp.ACK && !bits.HasBit8(r.flags, RST1) {
-		r.flags = bits.SetBit8(r.flags, RST1)
-	} else if tcp.RST && !tcp.ACK && !bits.HasBit8(r.flags, RST2) {
-		r.flags = bits.SetBit8(r.flags, RST2)
+		r.PSH = true
+	} else if tcp.RST && tcp.ACK && !r.RSTACK1 {
+		r.RSTACK1 = true
+	} else if tcp.RST && tcp.ACK && !r.RSTACK2 {
+		r.RSTACK2 = true
+	} else if tcp.RST && tcp.ACK && !r.RSTACK3 {
+		r.RSTACK3 = true
+	} else if tcp.RST && !tcp.ACK && !r.RST1 {
+		r.RST1 = true
+	} else if tcp.RST && !tcp.ACK && !r.RST2 {
+		r.RST2 = true
 	}
 }
 
-func (r *rstAcks) detected() bool {
-	if bits.HasBit8(r.flags, PSH) && // PSH
-		bits.HasBit8(r.flags, RSTACK1) && // First RST-ACK
-		bits.HasBit8(r.flags, RST1) { // First RST
-		return true
-	} else if bits.HasBit8(r.flags, PSH) && // PSH
-		bits.HasBit8(r.flags, RSTACK1) && // First RST-ACK
-		bits.HasBit8(r.flags, RSTACK2) { // Second RST-ACK
-		return true
-	}
-
-	return false
+func (r *rstacksHeuristic) detected() bool {
+	return (r.PSH && r.RSTACK1 && r.RST1) ||
+		(r.PSH && r.RSTACK1 && r.RSTACK2)
 }
 
-const (
-	W_PSH = 0
-	W_WIN = 1
-)
-
-type window struct {
-	flags uint8 // 11XX XXXX (two used bits)
+// WIN heuristic, exhibited by Airtel (India)
+// See testdata/airtel_example.pcap and testdata/airtel_https_example.pcap.
+type windowHeuristic struct {
+	PSH, WIN bool
 }
 
-func NewWindow() *window {
-	return &window{}
+func newWindowHeuristic() *windowHeuristic {
+	return &windowHeuristic{}
 }
 
-func (h *window) processPacket(tcp *layers.TCP, dir reassembly.TCPFlowDirection) {
+func (h *windowHeuristic) processPacket(tcp *layers.TCP, dir reassembly.TCPFlowDirection) {
 	if dir != reassembly.TCPDirClientToServer {
 		return
 	}
 
 	if tcp.PSH {
-		h.flags = bits.SetBit8(h.flags, W_PSH)
+		h.PSH = true
 	} else if tcp.RST && tcp.Window == 16 {
-		h.flags = bits.SetBit8(h.flags, W_WIN)
+		h.WIN = true
 	}
 }
 
-func (h *window) detected() bool {
-	if bits.HasBit8(h.flags, W_PSH) && // PSH
-		bits.HasBit8(h.flags, W_WIN) {
-		return true
-	}
-
-	return false
+func (h *windowHeuristic) detected() bool {
+	return h.PSH && h.WIN
 }

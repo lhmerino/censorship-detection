@@ -7,7 +7,10 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 
 	"tripwire/pkg/collector"
 	"tripwire/pkg/config"
@@ -127,19 +130,31 @@ func run(cfg config.Config) {
 		logger.Info.Printf("Starting metrics server")
 		go metrics.Start(server, metricsListener)
 	}
+	var labels []string
+	for _, df := range dfs {
+		labels = append(labels, df.Label())
+	}
 
-	// Run parser
+	// Print metrics upon receiving a SIGUSR1
+	infoChan := make(chan os.Signal, 1)
+	signal.Notify(infoChan, syscall.SIGUSR1)
+	go func() {
+		for {
+			<-infoChan
+			metrics.Print(labels)
+		}
+	}()
+
+	// Run parser and clean up and exit upon receiving a SIGINT/SIGTERM
 	logger.Info.Printf("Running parser")
-	err = p.Run()
+	quitChan := make(chan os.Signal, 1)
+	signal.Notify(quitChan, syscall.SIGINT, syscall.SIGTERM)
+	err = p.Run(quitChan)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// Print metrics
-	var labels []string
-	for _, df := range dfs {
-		labels = append(labels, df.Label())
-	}
 	metrics.Print(labels)
 
 	// Clean up
