@@ -2,7 +2,6 @@
 Uses GeoLite2 City Database to geolocate a given newline separated list of IP addresses.
 """
 
-import json
 import os
 import subprocess as sp
 import sys
@@ -14,13 +13,13 @@ basepath = os.path.dirname(os.path.abspath(__file__))
 
 if len(sys.argv) < 2:
     print("Usage: %s <list_of_ip_addresses> > output_file.txt" % __file__)
-    exit()
+    sys.exit()
 
 to_analyze = sys.argv[1]
 
 if not os.path.exists(to_analyze):
     print("ERROR: Could not open %s. Is this file readable?" % to_analyze)
-    exit()
+    sys.exit()
 
 reader = geoip2.database.Reader(
     os.path.join(basepath, "GeoLite2-City_20210126/GeoLite2-City.mmdb")
@@ -31,10 +30,7 @@ pbar = tqdm.tqdm(total=total_lines)
 print("ip,country,city,longitude,latitude")
 with open(to_analyze, "r") as fd:
     line = fd.readline()
-    count = 0
-    max_size = 0
     while line:
-        count += 1
         line = line.strip()
         if "," in line:
             ip = line.split(",")[0]
@@ -43,7 +39,6 @@ with open(to_analyze, "r") as fd:
         try:
             response = reader.city(ip)
         except Exception as exc:
-            line = fd.readline()
             country = "Unknown"
             city = "Unknown"
             longitude = "Unknown"
