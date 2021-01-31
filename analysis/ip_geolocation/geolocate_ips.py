@@ -3,12 +3,14 @@ Uses GeoLite2 City Database to geolocate a given newline separated list of IP ad
 """
 
 import json
+import os
 import subprocess as sp
 import sys
 import tqdm
 
 import geoip2.database
 
+basepath = os.path.dirname(os.path.abspath(__file__))
 
 if len(sys.argv) < 2:
     print("Usage: %s <list_of_ip_addresses> > output_file.txt" % __file__)
@@ -16,7 +18,13 @@ if len(sys.argv) < 2:
 
 to_analyze = sys.argv[1]
 
-reader = geoip2.database.Reader("GeoLite2-City_20210126/GeoLite2-City.mmdb")
+if not os.path.exists(to_analyze):
+    print("ERROR: Could not open %s. Is this file readable?" % to_analyze)
+    exit()
+
+reader = geoip2.database.Reader(
+    os.path.join(basepath, "GeoLite2-City_20210126/GeoLite2-City.mmdb")
+)
 
 total_lines = int(sp.check_output(["wc", "-l", to_analyze]).split()[0])
 pbar = tqdm.tqdm(total=total_lines)
@@ -27,7 +35,7 @@ with open(to_analyze, "r") as fd:
     max_size = 0
     while line:
         count += 1
-        line= line.strip()
+        line = line.strip()
         if "," in line:
             ip = line.split(",")[0]
         else:
