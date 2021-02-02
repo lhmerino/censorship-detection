@@ -18,7 +18,6 @@ const (
 	ProtocolAny ProtocolType = iota
 	ProtocolHTTP
 	ProtocolHTTPS
-	ProtocolECH
 	ProtocolDNS
 	ProtocolSMTP
 )
@@ -27,7 +26,6 @@ var protocolMap = map[string]ProtocolType{
 	"any":   ProtocolAny,
 	"http":  ProtocolHTTP,
 	"https": ProtocolHTTPS,
-	"ech":   ProtocolECH,
 	"dns":   ProtocolDNS,
 	"smtp":  ProtocolSMTP,
 }
@@ -41,9 +39,9 @@ const (
 )
 
 var heuristicMap = map[string]HeuristicType{
-	"any": HeuristicAny,
+	"any":     HeuristicAny,
 	"rstacks": HeuristicRSTACKs,
-	"win": HeuristicWIN,
+	"win":     HeuristicWIN,
 }
 
 type DetectorFactory interface {
@@ -76,16 +74,15 @@ type detector struct {
 
 	// protocols
 	anyProtocol bool
-	http        *http
-	https       *https
-	ech         *ech
-	dns         *dns
-	smtp        *smtp
+	http        *httpProtocol
+	https       *httpsProtocol
+	dns         *dnsProtocol
+	smtp        *smtpProtocol
 
 	// heuristics
 	anyHeuristic bool
-	rstacks      *rstAcks
-	win          *window
+	rstacks      *rstacksHeuristic
+	win          *windowHeuristic
 }
 
 func NewDetectorFactory(cfg config.DetectorConfig) (DetectorFactory, error) {
@@ -115,24 +112,22 @@ func (f *detectorFactory) NewDetector(net, transport gopacket.Flow, tcp *layers.
 
 	switch f.protocol {
 	case ProtocolHTTP:
-		d.http = newHTTP()
+		d.http = newHTTPProtocol()
 	case ProtocolHTTPS:
-		d.https = newHTTPS()
-	case ProtocolECH:
-		d.ech = newECH()
+		d.https = newHTTPSProtocol()
 	case ProtocolDNS:
-		d.dns = newDNS()
+		d.dns = newDNSProtocol()
 	case ProtocolSMTP:
-		d.smtp = newSMTP()
+		d.smtp = newSMTPProtocol()
 	case ProtocolAny:
 		d.anyProtocol = true
 	}
 
 	switch f.heuristic {
 	case HeuristicRSTACKs:
-		d.rstacks = newRSTACKs()
+		d.rstacks = newRSTACKsHeuristic()
 	case HeuristicWIN:
-		d.win = NewWindow()
+		d.win = newWindowHeuristic()
 	case HeuristicAny:
 		d.anyHeuristic = true
 	}
@@ -169,8 +164,17 @@ func (d *detector) Label() string {
 func (d *detector) ProcessPacket(packet gopacket.Packet, tcp *layers.TCP,
 	ci gopacket.CaptureInfo, dir reassembly.TCPFlowDirection) {
 	// protocols
-	if d.ech != nil {
-		d.ech.processPacket(packet)
+	if d.http != nil {
+		d.http.processPacket(packet)
+	}
+	if d.https != nil {
+		d.https.processPacket(packet)
+	}
+	if d.dns != nil {
+		d.dns.processPacket(packet)
+	}
+	if d.smtp != nil {
+		d.smtp.processPacket(packet)
 	}
 
 	// heuristics
@@ -195,9 +199,6 @@ func (d *detector) ProtocolDetected() (detected bool) {
 		detected = true
 	}
 	if d.https != nil && d.https.detected() {
-		detected = true
-	}
-	if d.ech != nil && d.ech.detected() {
 		detected = true
 	}
 	if d.dns != nil && d.dns.detected() {

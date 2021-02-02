@@ -8,222 +8,84 @@ import (
 )
 
 func TestUnitRSTACKs(t *testing.T) {
-	rstAck := newRSTACKs()
 
-	tcp := &layers.TCP{
-		SYN: true,
-	}
-	dir := reassembly.TCPDirClientToServer
-	rstAck.processPacket(tcp, dir)
-	if rstAck.flags != 0 || rstAck.detected() != false {
-		t.Errorf("[RSTACKs] Flag, expected 0, got %d or Censorship Triggered, expected false got %t",
-			rstAck.flags, rstAck.detected())
-	}
-
-	tcp = &layers.TCP{
-		SYN: true,
-		ACK: true,
-	}
-	dir = reassembly.TCPDirServerToClient
-	rstAck.processPacket(tcp, dir)
-	if rstAck.flags != 0 || rstAck.detected() != false {
-		t.Errorf("[RSTACKs] Flag, expected 0, got %d or Censorship Triggered, expected false got %t",
-			rstAck.flags, rstAck.detected())
-	}
-
-	tcp = &layers.TCP{
-		ACK: true,
-	}
-	dir = reassembly.TCPDirClientToServer
-	rstAck.processPacket(tcp, dir)
-	if rstAck.flags != 0 || rstAck.detected() != false {
-		t.Errorf("[RSTACKs] Flag, expected 0, got %d or Censorship Triggered, expected false got %t",
-			rstAck.flags, rstAck.detected())
-	}
-
-	// PSH simulating a censored query
-	tcp = &layers.TCP{
-		PSH: true,
-	}
-	dir = reassembly.TCPDirClientToServer
-	rstAck.processPacket(tcp, dir)
-	if rstAck.flags != 1 || rstAck.detected() != false {
-		t.Errorf("[RSTACKs] Flag, expected 1, got %d or Censorship Triggered, expected false got %t",
-			rstAck.flags, rstAck.detected())
+	var tests = [][]struct {
+		dir      reassembly.TCPFlowDirection
+		tcp      layers.TCP
+		detected bool
+	}{
+		{ // Test PSH, RST-ACK, RST-ACK sequence
+			// TCP three-way handshake
+			{detected: false, dir: reassembly.TCPDirClientToServer, tcp: layers.TCP{SYN: true}},
+			{detected: false, dir: reassembly.TCPDirServerToClient, tcp: layers.TCP{SYN: true, ACK: true}},
+			{detected: false, dir: reassembly.TCPDirClientToServer, tcp: layers.TCP{ACK: true}},
+			// PSH simulating a censored query
+			{detected: false, dir: reassembly.TCPDirClientToServer, tcp: layers.TCP{PSH: true}},
+			// ACK the PSH
+			{detected: false, dir: reassembly.TCPDirServerToClient, tcp: layers.TCP{ACK: true}},
+			// First RST-ACK
+			{detected: false, dir: reassembly.TCPDirClientToServer, tcp: layers.TCP{RST: true, ACK: true}},
+			// Second RST-ACK
+			{detected: true, dir: reassembly.TCPDirClientToServer, tcp: layers.TCP{RST: true, ACK: true}},
+		},
+		{ // Test PSH, RST, RST-ACK sequence
+			// TCP three-way handshake
+			{detected: false, dir: reassembly.TCPDirClientToServer, tcp: layers.TCP{SYN: true}},
+			{detected: false, dir: reassembly.TCPDirServerToClient, tcp: layers.TCP{SYN: true, ACK: true}},
+			{detected: false, dir: reassembly.TCPDirClientToServer, tcp: layers.TCP{ACK: true}},
+			// PSH simulating a censored query
+			{detected: false, dir: reassembly.TCPDirClientToServer, tcp: layers.TCP{PSH: true}},
+			// ACK the PSH
+			{detected: false, dir: reassembly.TCPDirServerToClient, tcp: layers.TCP{ACK: true}},
+			// First RST
+			{detected: false, dir: reassembly.TCPDirClientToServer, tcp: layers.TCP{RST: true}},
+			// First RST-ACK
+			{detected: true, dir: reassembly.TCPDirClientToServer, tcp: layers.TCP{RST: true, ACK: true}},
+		},
 	}
 
-	// ACK the PSH
-	tcp = &layers.TCP{
-		ACK: true,
-	}
-	dir = reassembly.TCPDirServerToClient
-	rstAck.processPacket(tcp, dir)
-	if rstAck.flags != 1 || rstAck.detected() != false {
-		t.Errorf("[RSTACKs] Flag, expected 1, got %d or Censorship Triggered, expected false got %t",
-			rstAck.flags, rstAck.detected())
-	}
+	for _, packets := range tests {
+		heuristic := newRSTACKsHeuristic()
 
-	// First RST-ACK
-	tcp = &layers.TCP{
-		RST: true,
-		ACK: true,
-	}
-	dir = reassembly.TCPDirClientToServer
-	rstAck.processPacket(tcp, dir)
-	if rstAck.flags != 3 || rstAck.detected() != false {
-		t.Errorf("[RSTACKs] Flag, expected 3, got %d or Censorship Triggered, expected false got %t",
-			rstAck.flags, rstAck.detected())
-	}
-
-	// Second RST-ACK
-	tcp = &layers.TCP{
-		RST: true,
-		ACK: true,
-	}
-	dir = reassembly.TCPDirClientToServer
-	rstAck.processPacket(tcp, dir)
-	if rstAck.flags != 7 || rstAck.detected() != true {
-		t.Errorf("[RSTACKs] Flag, expected 7, got %d or Censorship Triggered, expected true got %t",
-			rstAck.flags, rstAck.detected())
-	}
-
-	// First RST
-	tcp = &layers.TCP{
-		RST: true,
-	}
-	dir = reassembly.TCPDirClientToServer
-	rstAck.processPacket(tcp, dir)
-	if rstAck.flags != 23 || rstAck.detected() != true {
-		t.Errorf("[RSTACKs] Flag, expected 23, got %d or Censorship Triggered, expected true got %t",
-			rstAck.flags, rstAck.detected())
-	}
-
-	// Third RST-ACK
-	tcp = &layers.TCP{
-		RST: true,
-		ACK: true,
-	}
-	dir = reassembly.TCPDirClientToServer
-	rstAck.processPacket(tcp, dir)
-	if rstAck.flags != 31 || rstAck.detected() != true {
-		t.Errorf("[RSTACKs] Flag, expected 31, got %d or Censorship Triggered, expected true got %t",
-			rstAck.flags, rstAck.detected())
-	}
-
-	// Doesn't change anything (4th RST-ACK)
-	tcp = &layers.TCP{
-		RST: true,
-		ACK: true,
-	}
-	dir = reassembly.TCPDirClientToServer
-	rstAck.processPacket(tcp, dir)
-	if rstAck.flags != 31 || rstAck.detected() != true {
-		t.Errorf("[RSTACKs] Flag, expected 31, got %d or Censorship Triggered, expected true got %t",
-			rstAck.flags, rstAck.detected())
-	}
-
-	// Second RST
-	tcp = &layers.TCP{
-		RST: true,
-	}
-	dir = reassembly.TCPDirClientToServer
-	rstAck.processPacket(tcp, dir)
-	if rstAck.flags != 63 || rstAck.detected() != true {
-		t.Errorf("[RSTACKs] Flag, expected 63, got %d or Censorship Triggered, expected true got %t",
-			rstAck.flags, rstAck.detected())
-	}
-
-	// Doesn't change anything (3rd RST)
-	tcp = &layers.TCP{
-		RST: true,
-	}
-	dir = reassembly.TCPDirClientToServer
-	rstAck.processPacket(tcp, dir)
-	if rstAck.flags != 63 || rstAck.detected() != true {
-		t.Errorf("[RSTACKs] Flag, expected 63, got %d or Censorship Triggered, expected true got %t",
-			rstAck.flags, rstAck.detected())
+		for i, packet := range packets {
+			heuristic.processPacket(&packet.tcp, packet.dir)
+			if packet.detected != heuristic.detected() {
+				t.Errorf("packet %d: got %v, want %v", i, heuristic.detected(), packet.detected)
+			}
+		}
 	}
 }
 
 func TestUnitWin(t *testing.T) {
-	heuristic := NewWindow()
-
-	tcp := &layers.TCP{
-		SYN: true,
-	}
-	dir := reassembly.TCPDirClientToServer
-	heuristic.processPacket(tcp, dir)
-	if heuristic.flags != 0 || heuristic.detected() != false {
-		t.Errorf("[WIN] Flag, expected 0, got %d or Censorship Triggered, expected false got %t",
-			heuristic.flags, heuristic.detected())
-	}
-
-	tcp = &layers.TCP{
-		SYN: true,
-		ACK: true,
-	}
-	dir = reassembly.TCPDirServerToClient
-	heuristic.processPacket(tcp, dir)
-	if heuristic.flags != 0 || heuristic.detected() != false {
-		t.Errorf("[WIN] Flag, expected 0, got %d or Censorship Triggered, expected false got %t",
-			heuristic.flags, heuristic.detected())
+	var tests = [][]struct {
+		dir      reassembly.TCPFlowDirection
+		tcp      layers.TCP
+		detected bool
+	}{
+		{ // Test RST, WIN sequence
+			// TCP three-way handshake
+			{detected: false, dir: reassembly.TCPDirClientToServer, tcp: layers.TCP{SYN: true}},
+			{detected: false, dir: reassembly.TCPDirServerToClient, tcp: layers.TCP{SYN: true, ACK: true}},
+			{detected: false, dir: reassembly.TCPDirClientToServer, tcp: layers.TCP{ACK: true}},
+			// PSH simulating a censored query
+			{detected: false, dir: reassembly.TCPDirClientToServer, tcp: layers.TCP{PSH: true}},
+			// ACK the PSH
+			{detected: false, dir: reassembly.TCPDirServerToClient, tcp: layers.TCP{ACK: true}},
+			// RST-ACK but wrong window value to trigger heuristic
+			{detected: false, dir: reassembly.TCPDirClientToServer, tcp: layers.TCP{RST: true, ACK: true, Window: 30}},
+			// RST-ACK with correct window value to trigger heuristic
+			{detected: true, dir: reassembly.TCPDirClientToServer, tcp: layers.TCP{RST: true, ACK: true, Window: 16}},
+		},
 	}
 
-	tcp = &layers.TCP{
-		ACK: true,
-	}
-	dir = reassembly.TCPDirClientToServer
-	heuristic.processPacket(tcp, dir)
-	if heuristic.flags != 0 || heuristic.detected() != false {
-		t.Errorf("[WIN] Flag, expected 0, got %d or Censorship Triggered, expected false got %t",
-			heuristic.flags, heuristic.detected())
-	}
+	for _, packets := range tests {
+		heuristic := newWindowHeuristic()
 
-	// PSH simulating a censored query
-	tcp = &layers.TCP{
-		PSH: true,
-	}
-	dir = reassembly.TCPDirClientToServer
-	heuristic.processPacket(tcp, dir)
-	if heuristic.flags != 1 || heuristic.detected() != false {
-		t.Errorf("[WIN] Flag, expected 1, got %d or Censorship Triggered, expected false got %t",
-			heuristic.flags, heuristic.detected())
-	}
-
-	// ACK the PSH
-	tcp = &layers.TCP{
-		ACK: true,
-	}
-	dir = reassembly.TCPDirServerToClient
-	heuristic.processPacket(tcp, dir)
-	if heuristic.flags != 1 || heuristic.detected() != false {
-		t.Errorf("[WIN] Flag, expected 1, got %d or Censorship Triggered, expected false got %t",
-			heuristic.flags, heuristic.detected())
-	}
-
-	// First RST-ACK but incorrect window size
-	tcp = &layers.TCP{
-		RST: true,
-		ACK: true,
-		Window: 30,
-	}
-	dir = reassembly.TCPDirClientToServer
-	heuristic.processPacket(tcp, dir)
-	if heuristic.flags != 1 || heuristic.detected() != false {
-		t.Errorf("[WIN] Flag, expected 1, got %d or Censorship Triggered, expected false got %t",
-			heuristic.flags, heuristic.detected())
-	}
-
-	// Second RST-ACK with correct window size
-	tcp = &layers.TCP{
-		RST: true,
-		ACK: true,
-		Window: 16,
-	}
-	dir = reassembly.TCPDirClientToServer
-	heuristic.processPacket(tcp, dir)
-	if heuristic.flags != 3 || heuristic.detected() != true {
-		t.Errorf("[WIN] Flag, expected 3, got %d or Censorship Triggered, expected true got %t",
-			heuristic.flags, heuristic.detected())
+		for i, packet := range packets {
+			heuristic.processPacket(&packet.tcp, packet.dir)
+			if packet.detected != heuristic.detected() {
+				t.Errorf("packet %d: got %v, want %v", i, heuristic.detected(), packet.detected)
+			}
+		}
 	}
 }

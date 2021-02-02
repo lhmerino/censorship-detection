@@ -22,7 +22,7 @@ collector:
   fields:
     - IP
     - Ports
-    - Dir
+    - Direction
     - Timestamp
     - IPID
     - TTL

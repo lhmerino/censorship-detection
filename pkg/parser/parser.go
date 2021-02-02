@@ -2,9 +2,7 @@ package parser
 
 import (
 	"os"
-	"os/signal"
 	"time"
-	"syscall"
 
 	"tripwire/pkg/config"
 	"tripwire/pkg/util/logger"
@@ -63,7 +61,7 @@ func NewParser(cfg config.ParserConfig, streamFactory reassembly.StreamFactory) 
 	}
 }
 
-func (p *parser) Run() error {
+func (p *parser) Run(signalChan chan os.Signal) error {
 	var handle *pcap.Handle
 	var err error
 
@@ -72,7 +70,7 @@ func (p *parser) Run() error {
 		handle, err = pcap.OpenOffline(p.pcapFile)
 	} else {
 		logger.Info.Printf("Starting capture on interface %q with filter %v", p.iface, p.filter)
-		handle, err = pcap.OpenLive(p.iface, int32(p.snaplen), true, time.Second * 10)
+		handle, err = pcap.OpenLive(p.iface, int32(p.snaplen), true, time.Second*10)
 	}
 	if err != nil {
 		return err
@@ -83,10 +81,6 @@ func (p *parser) Run() error {
 	if err = handle.SetBPFFilter(p.filter); err != nil {
 		return err
 	}
-
-	// Interrupt setup
-	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
 
 	// Packet source setup
 	packetSource := gopacket.NewPacketSource(handle, handle.LinkType())

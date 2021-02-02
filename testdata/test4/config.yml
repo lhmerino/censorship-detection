@@ -36,6 +36,7 @@ collector:
     - Payload
     - SNI
     - Host
+    - Extensions
   truncate_ips: true
   max_packets: 10
   cli_maxlen: 500

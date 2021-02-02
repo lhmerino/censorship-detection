@@ -1,5 +1,5 @@
-github.com/Kkevsterrr/gopacket v1.1.23 h1:m7MRPSc6E3MZ4OEBnBFLfC9XR3xPMdyNBLxnFYk/x30=
-github.com/Kkevsterrr/gopacket v1.1.23/go.mod h1:4mSo6yDtNvJfb63GcM76FQ0ZRKJf98FIIxpb40w9Kjw=
+github.com/Kkevsterrr/gopacket v1.1.24 h1:T6bZpOATL/bohhO+LYcWAyfQHzB3r++ct8ExpD9EqhQ=
+github.com/Kkevsterrr/gopacket v1.1.24/go.mod h1:4mSo6yDtNvJfb63GcM76FQ0ZRKJf98FIIxpb40w9Kjw=
 github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
 github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751 h1:JYp7IbQjafoB+tBA3gMyHYHrpOtNuDiK/uB5uXxq5wM=
 github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=

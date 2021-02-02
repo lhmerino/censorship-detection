@@ -1,96 +1,141 @@
 package detector
 
 import (
+	"bufio"
+	"bytes"
+	"net/http"
+	"net/mail"
+
+	"golang.org/x/net/dns/dnsmessage"
+
 	"github.com/Kkevsterrr/gopacket"
 	"github.com/Kkevsterrr/gopacket/layers"
 )
 
 // http detects HTTP streams
-type http struct{}
-
-func newHTTP() *http {
-	return &http{}
+type httpProtocol struct {
+	isDetected bool
 }
 
-func (p *http) detected() bool {
-	// TODO: process packets to detect protocol
-	return true
+func newHTTPProtocol() *httpProtocol {
+	return &httpProtocol{}
+}
+
+func (p *httpProtocol) detected() bool {
+	return p.isDetected
+}
+
+func (p *httpProtocol) processPacket(packet gopacket.Packet) {
+	if p.isDetected {
+		// skip processing packet if already detected
+		return
+	}
+	// Attempt to parse an HTTP request from the packet
+	if app := packet.ApplicationLayer(); app != nil {
+		buf := bufio.NewReader(bytes.NewReader(app.Payload()))
+		_, err := http.ReadRequest(buf)
+		if err != nil {
+			return
+		}
+		p.isDetected = true
+	}
 }
 
 // https detects HTTPS streams
-type https struct{}
-
-func newHTTPS() *https {
-	return &https{}
+type httpsProtocol struct {
+	isDetected bool
 }
 
-func (p *https) detected() bool {
-	// TODO: process packets to detect protocol
-	return true
+func newHTTPSProtocol() *httpsProtocol {
+	return &httpsProtocol{}
 }
 
-// ech detects HTTPS streams with the encrypted client hello extension
-type ech struct {
-	isECH bool
+func (p *httpsProtocol) detected() bool {
+	return p.isDetected
 }
 
-func newECH() *ech {
-	return &ech{}
-}
-
-func (p *ech) processPacket(packet gopacket.Packet) {
-
-	// check if packet is a TLS client hello with an ECH extension
-	var clientHello *layers.TLSClientHello
-	if packet.ApplicationLayer() != nil {
+func (p *httpsProtocol) processPacket(packet gopacket.Packet) {
+	if p.isDetected {
+		// skip processing packet if already detected
+		return
+	}
+	// Attempt to parse a TLS Client Hello from the packet
+	if app := packet.ApplicationLayer(); app != nil {
 		var tls layers.TLS
 		var decoded []gopacket.LayerType
 		parser := gopacket.NewDecodingLayerParser(layers.LayerTypeTLS, &tls)
-		err := parser.DecodeLayers(packet.ApplicationLayer().LayerContents(), &decoded)
+		err := parser.DecodeLayers(app.LayerContents(), &decoded)
 		if err != nil {
 			return
 		}
 		for _, layerType := range decoded {
-			switch layerType {
-			case layers.LayerTypeTLS:
+			if layerType == layers.LayerTypeTLS {
 				if len(tls.Handshake) > 0 {
 					hs := tls.Handshake[0]
 					if hs.HandshakeType == 1 {
-						clientHello = hs.ClientHello
+						p.isDetected = true
+						return
 					}
 				}
 			}
 		}
 	}
-	if clientHello != nil {
-		p.isECH = clientHello.EncryptedClientHello
-	}
-}
-
-func (p *ech) detected() bool {
-	return p.isECH
 }
 
 // smtp detects SMTP streams
-type smtp struct{}
-
-func newSMTP() *smtp {
-	return &smtp{}
+type smtpProtocol struct {
+	isDetected bool
 }
 
-func (p *smtp) detected() bool {
-	// TODO: process packets to detect protocol
-	return true
+func newSMTPProtocol() *smtpProtocol {
+	return &smtpProtocol{}
+}
+
+func (p *smtpProtocol) detected() bool {
+	return p.isDetected
+}
+
+func (p *smtpProtocol) processPacket(packet gopacket.Packet) {
+	if p.isDetected {
+		// skip processing packet if already detected
+		return
+	}
+	// Attempt to parse a HTTP request from the packet
+	if app := packet.ApplicationLayer(); app != nil {
+		buf := bufio.NewReader(bytes.NewReader(app.Payload()))
+		_, err := mail.ReadMessage(buf)
+		if err != nil {
+			return
+		}
+		p.isDetected = true
+	}
 }
 
 // dns detects DNS streams
-type dns struct{}
-
-func newDNS() *dns {
-	return &dns{}
+type dnsProtocol struct {
+	isDetected bool
 }
 
-func (p *dns) detected() bool {
-	// TODO: process packets to detect protocol
-	return true
+func newDNSProtocol() *dnsProtocol {
+	return &dnsProtocol{}
+}
+
+func (p *dnsProtocol) detected() bool {
+	return p.isDetected
+}
+
+func (p *dnsProtocol) processPacket(packet gopacket.Packet) {
+	if p.isDetected {
+		// skip processing packet if already detected
+		return
+	}
+	// Attempt to parse a DNS message from the packet
+	if app := packet.ApplicationLayer(); app != nil {
+		var parser dnsmessage.Parser
+		_, err := parser.Start(app.Payload())
+		if err != nil {
+			return
+		}
+		p.isDetected = true
+	}
 }

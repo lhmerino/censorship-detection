@@ -39,20 +39,22 @@ const (
 	FieldSeqNum
 	FieldSNI
 	FieldHost
+	FieldTLSExtensions
 )
 
 var fieldMap = map[string]FieldType{
-	"ip":        FieldIP,
-	"ports":     FieldPorts,
-	"direction": FieldDirection,
-	"timestamp": FieldTimestamp,
-	"ipid":      FieldIPID,
-	"ttl":       FieldTTL,
-	"flags":     FieldFlags,
-	"payload":   FieldPayload,
-	"seqnum":    FieldSeqNum,
-	"sni":       FieldSNI,
-	"host":      FieldHost,
+	"ip":         FieldIP,
+	"ports":      FieldPorts,
+	"direction":  FieldDirection,
+	"timestamp":  FieldTimestamp,
+	"ipid":       FieldIPID,
+	"ttl":        FieldTTL,
+	"flags":      FieldFlags,
+	"payload":    FieldPayload,
+	"seqnum":     FieldSeqNum,
+	"sni":        FieldSNI,
+	"host":       FieldHost,
+	"extensions": FieldTLSExtensions,
 }
 
 type collectorFactory struct {
@@ -67,17 +69,18 @@ type collectorFactory struct {
 type collector struct {
 	packetCount, maxPacketCount int
 	// Enabled features are non-nil
-	ip        *ipCollector
-	ports     *portCollector
-	direction *directionCollector
-	timestamp *timestampCollector
-	ipid      *ipidCollector
-	ttl       *ttlCollector
-	flags     *flagCollector
-	payload   *payloadCollector
-	seqnum    *seqnumCollector
-	sni       *sniCollector
-	host      *hostCollector
+	ip            *ipCollector
+	ports         *portCollector
+	direction     *directionCollector
+	timestamp     *timestampCollector
+	ipid          *ipidCollector
+	ttl           *ttlCollector
+	flags         *flagCollector
+	payload       *payloadCollector
+	seqnum        *seqnumCollector
+	sni           *sniCollector
+	host          *hostCollector
+	tlsExtensions *tlsExtensionsCollector
 }
 
 func NewCollectorFactory(cfg config.CollectorConfig) (CollectorFactory, error) {
@@ -127,6 +130,8 @@ func (f *collectorFactory) NewCollector(net, transport gopacket.Flow, tcp *layer
 			c.sni = newSNICollector()
 		case FieldHost:
 			c.host = newHostCollector()
+		case FieldTLSExtensions:
+			c.tlsExtensions = newTLSExtensionsCollector()
 		}
 	}
 	return &c
@@ -156,8 +161,14 @@ func (c *collector) ProcessPacket(packet gopacket.Packet, tcp *layers.TCP,
 	if c.seqnum != nil {
 		c.seqnum.processPacket(tcp)
 	}
+	if c.host != nil {
+		c.host.processPacket(packet)
+	}
 	if c.sni != nil {
 		c.sni.processPacket(packet)
+	}
+	if c.tlsExtensions != nil {
+		c.tlsExtensions.processPacket(packet)
 	}
 }
 
@@ -170,36 +181,35 @@ func (c *collector) ProcessReassembled(sg reassembly.ScatterGather,
 	if c.payload != nil {
 		c.payload.processReassembled(dir, length, payload)
 	}
-	if c.host != nil {
-		c.host.processReassembled(dir, length, payload)
-	}
 }
 
 func (c *collector) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
-		IP        *ipCollector        `json:"ip,omitempty"`
-		Ports     *portCollector      `json:"ports,omitempty"`
-		Direction *directionCollector `json:"direction,omitempty"`
-		Timestamp *timestampCollector `json:"timestamp,omitempty"`
-		IPID      *ipidCollector      `json:"ipid,omitempty"`
-		TTL       *ttlCollector       `json:"ttl,omitempty"`
-		Flags     *flagCollector      `json:"flags,omitempty"`
-		SeqNum    *seqnumCollector    `json:"seqnum,omitempty"`
-		Payload   *payloadCollector   `json:"payload,omitempty"`
-		SNI       *sniCollector       `json:"sni,omitempty"`
-		Host      *hostCollector      `json:"host,omitempty"`
+		IP         *ipCollector            `json:"ip,omitempty"`
+		Ports      *portCollector          `json:"ports,omitempty"`
+		Direction  *directionCollector     `json:"direction,omitempty"`
+		Timestamp  *timestampCollector     `json:"timestamp,omitempty"`
+		IPID       *ipidCollector          `json:"ipid,omitempty"`
+		TTL        *ttlCollector           `json:"ttl,omitempty"`
+		Flags      *flagCollector          `json:"flags,omitempty"`
+		SeqNum     *seqnumCollector        `json:"seqnum,omitempty"`
+		Payload    *payloadCollector       `json:"payload,omitempty"`
+		SNI        *sniCollector           `json:"sni,omitempty"`
+		Host       *hostCollector          `json:"host,omitempty"`
+		Extensions *tlsExtensionsCollector `json:"extensions,omitempty"`
 	}{
-		IP:        c.ip,
-		Ports:     c.ports,
-		Direction: c.direction,
-		Timestamp: c.timestamp,
-		IPID:      c.ipid,
-		TTL:       c.ttl,
-		Flags:     c.flags,
-		SeqNum:    c.seqnum,
-		Payload:   c.payload,
-		SNI:       c.sni,
-		Host:      c.host,
+		IP:         c.ip,
+		Ports:      c.ports,
+		Direction:  c.direction,
+		Timestamp:  c.timestamp,
+		IPID:       c.ipid,
+		TTL:        c.ttl,
+		Flags:      c.flags,
+		SeqNum:     c.seqnum,
+		Payload:    c.payload,
+		SNI:        c.sni,
+		Host:       c.host,
+		Extensions: c.tlsExtensions,
 	})
 }
 
@@ -237,6 +247,9 @@ func (c *collector) String() string {
 	}
 	if c.host != nil {
 		b.WriteString(fmt.Sprintf("  Host: %s\n", c.host))
+	}
+	if c.tlsExtensions != nil {
+		b.WriteString(fmt.Sprintf("  Extensions: %s\n", c.tlsExtensions))
 	}
 	return b.String()
 }

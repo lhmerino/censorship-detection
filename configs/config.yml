@@ -60,6 +60,7 @@ collector:
     - SeqNum
     - Payload
     - SNI
+    - Extensions
   truncate_ips: true
   cli_maxlen: 0
   srv_maxlen: 0
