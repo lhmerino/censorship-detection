@@ -40,6 +40,8 @@ def test_http(testing_endpoint, starting_port=15000):
         else:
             result = "unknown"
         port += 1
+        if port > 30000:
+            port = 15000
 
         print(",".join([host, result]))
 
@@ -73,6 +75,10 @@ def test_https(testing_endpoint, starting_port=15000):
 
         print(",".join([host, result]))
         port += 1
+        if port > 30000:
+            port = 15000
+
+
 
 
 def test(args):
