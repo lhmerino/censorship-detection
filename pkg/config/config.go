@@ -23,7 +23,6 @@ type CollectorConfig struct {
 	Fields                 []string `yaml:"fields"`
 	TruncateIPs            bool     `yaml:"truncate_ips"`        // Used by IP
 	RelativeTimestamps     bool     `yaml:"relative_timestamps"` // Used by Timestamp
-	MaxPacketCount         int      `yaml:"max_packets"`         // Used by any collector that calls processPacket
 	MaxClientPayloadLength int      `yaml:"cli_maxlen"`          // Used by Payload
 	MaxServerPayloadLength int      `yaml:"srv_maxlen"`          // Used by Payload
 }
@@ -33,6 +32,7 @@ type TCPConfig struct {
 	// Not yet implemented. For an example of its use, see
 	// https://github.com/google/gopacket/blob/master/examples/reassemblydump/main.go#L48
 	AllowMissingInit bool `yaml:"allowmissinginit"`
+	MaxPacketCount   int  `yaml:"max_packets"` // Maximum number of packets to accept from each of the client and server
 }
 
 type ParserConfig struct {

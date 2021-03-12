@@ -30,6 +30,7 @@ var (
 // https://godoc.org/github.com/Kkevsterrr/gopacket/reassembly#StreamFactory
 type tcpStreamFactory struct {
 	allowMissingInit  bool // Allow for creating flows without actual TCP handshake
+	maxPacketCount    int  // Maximum number of packets to accept from each of the client and server
 	detectorFactories []detector.DetectorFactory
 	collectorFactory  collector.CollectorFactory
 	streamWriter      func(detector []detector.Detector, collector collector.Collector)
@@ -44,6 +45,9 @@ type tcpStream struct {
 	// Whether or not the flow client and server should be reversed
 	reversed bool
 
+	// Number of packets sent by the client and server
+	maxPacketCount, clientPacketCount, serverPacketCount int
+
 	detectors    []detector.Detector
 	collector    collector.Collector
 	streamWriter func(detector []detector.Detector, collector collector.Collector)
@@ -53,8 +57,13 @@ type tcpStream struct {
 
 func NewTCPStreamFactory(cfg config.TCPConfig, cf collector.CollectorFactory, dfs []detector.DetectorFactory,
 	streamWriter func(detector []detector.Detector, collector collector.Collector)) *tcpStreamFactory {
+	maxPacketCount := cfg.MaxPacketCount
+	if maxPacketCount == 0 {
+		maxPacketCount = 25
+	}
 	return &tcpStreamFactory{
 		allowMissingInit:  cfg.AllowMissingInit,
+		maxPacketCount:    maxPacketCount,
 		collectorFactory:  cf,
 		detectorFactories: dfs,
 		streamWriter:      streamWriter,
@@ -84,9 +93,10 @@ func (f *tcpStreamFactory) New(net, transport gopacket.Flow, tcp *layers.TCP, ac
 	}
 
 	return &tcpStream{
-		net:       net,
-		transport: transport,
-		reversed:  reversed,
+		net:            net,
+		transport:      transport,
+		reversed:       reversed,
+		maxPacketCount: f.maxPacketCount,
 
 		detectors:    detectors,
 		collector:    f.collectorFactory.NewCollector(net, transport, tcp),
@@ -105,10 +115,17 @@ func (t *tcpStream) Accept(packet gopacket.Packet, tcp *layers.TCP, ci gopacket.
 	var dirString string
 	if dir == reassembly.TCPDirClientToServer {
 		dirString = fmt.Sprintf("%v %v(%s)", t.net, t.transport, dir)
+		t.clientPacketCount++
 	} else {
 		dirString = fmt.Sprintf("%v %v(%s)", t.net.Reverse(), t.transport.Reverse(), dir)
+		t.serverPacketCount++
 	}
 	logger.Debug.Printf("%s: Accept | S:%t, A:%t, P:%t, R:%t F:%t", dirString, tcp.SYN, tcp.ACK, tcp.PSH, tcp.RST, tcp.FIN)
+
+	// stop processing the tcpStream when we reach the max packet count
+	if t.clientPacketCount > t.maxPacketCount || t.serverPacketCount > t.maxPacketCount {
+		return false
+	}
 
 	for _, det := range t.detectors {
 		det.ProcessPacket(packet, tcp, ci, dir)

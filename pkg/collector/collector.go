@@ -62,13 +62,11 @@ type collectorFactory struct {
 
 	truncateIPs            bool
 	relativeTimestamps     bool
-	maxPacketCount         int
 	maxClientPayloadLength int
 	maxServerPayloadLength int
 }
 
 type collector struct {
-	packetCount, maxPacketCount int
 	// Enabled features are non-nil
 	ip            *ipCollector
 	ports         *portCollector
@@ -95,10 +93,6 @@ func NewCollectorFactory(cfg config.CollectorConfig) (CollectorFactory, error) {
 	}
 	f.truncateIPs = cfg.TruncateIPs
 	f.relativeTimestamps = cfg.RelativeTimestamps
-	f.maxPacketCount = cfg.MaxPacketCount
-	if f.maxPacketCount == 0 {
-		f.maxPacketCount = 25
-	}
 	f.maxClientPayloadLength = cfg.MaxClientPayloadLength
 	f.maxServerPayloadLength = cfg.MaxServerPayloadLength
 
@@ -107,7 +101,6 @@ func NewCollectorFactory(cfg config.CollectorConfig) (CollectorFactory, error) {
 
 func (f *collectorFactory) NewCollector(net, transport gopacket.Flow, tcp *layers.TCP) Collector {
 	var c collector
-	c.maxPacketCount = f.maxPacketCount
 	for _, field := range f.fields {
 		switch field {
 		case FieldIP:
@@ -141,10 +134,6 @@ func (f *collectorFactory) NewCollector(net, transport gopacket.Flow, tcp *layer
 
 func (c *collector) ProcessPacket(packet gopacket.Packet, tcp *layers.TCP,
 	ci gopacket.CaptureInfo, dir reassembly.TCPFlowDirection) {
-	c.packetCount++
-	if c.packetCount > c.maxPacketCount {
-		return
-	}
 	if c.direction != nil {
 		c.direction.processPacket(dir)
 	}
