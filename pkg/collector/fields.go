@@ -120,16 +120,17 @@ func (p *directionCollector) String() string {
 	return strings.Join(strings.Fields(fmt.Sprintf("%t", *p)), ",")
 }
 
-// timestampCollector collects the packet timestamps in microseconds. The first
-// packet timestamp is set to 0 and all other timestamps are set relative to
-// the first.
+// timestampCollector collects the packet timestamps in microseconds. If
+// 'relative' is true, the first packet timestamp is set to 0 and all other
+// timestamps are set relative to the first.
 type timestampCollector struct {
+	relative    bool
 	startUs     int64
 	timestampUs []int64
 }
 
-func newTimestampCollector() *timestampCollector {
-	return &timestampCollector{}
+func newTimestampCollector(relative bool) *timestampCollector {
+	return &timestampCollector{relative: relative}
 }
 
 func (p *timestampCollector) processPacket(ci gopacket.CaptureInfo) {
@@ -137,7 +138,11 @@ func (p *timestampCollector) processPacket(ci gopacket.CaptureInfo) {
 	if p.startUs == 0 {
 		p.startUs = pktUs
 	}
-	p.timestampUs = append(p.timestampUs, pktUs-p.startUs)
+	if p.relative {
+		p.timestampUs = append(p.timestampUs, pktUs-p.startUs)
+	} else {
+		p.timestampUs = append(p.timestampUs, pktUs)
+	}
 }
 
 func (p *timestampCollector) MarshalJSON() ([]byte, error) {

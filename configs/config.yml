@@ -32,12 +32,6 @@ detectors:
     protocol: HTTPS
     port: 443
   - heuristic: RSTACKs
-    protocol: ECH
-    port: 443
-  - heuristic: RSTACKs
-    protocol: HTTPS
-    port: 443
-  - heuristic: RSTACKs
     protocol: DNS
     port: 53
   - heuristic: WIN

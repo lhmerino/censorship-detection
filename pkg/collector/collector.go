@@ -61,6 +61,7 @@ type collectorFactory struct {
 	fields []FieldType
 
 	truncateIPs            bool
+	relativeTimestamps     bool
 	maxPacketCount         int
 	maxClientPayloadLength int
 	maxServerPayloadLength int
@@ -93,6 +94,7 @@ func NewCollectorFactory(cfg config.CollectorConfig) (CollectorFactory, error) {
 		f.fields = append(f.fields, fieldType)
 	}
 	f.truncateIPs = cfg.TruncateIPs
+	f.relativeTimestamps = cfg.RelativeTimestamps
 	f.maxPacketCount = cfg.MaxPacketCount
 	if f.maxPacketCount == 0 {
 		f.maxPacketCount = 25
@@ -115,7 +117,7 @@ func (f *collectorFactory) NewCollector(net, transport gopacket.Flow, tcp *layer
 		case FieldDirection:
 			c.direction = newDirectionCollector()
 		case FieldTimestamp:
-			c.timestamp = newTimestampCollector()
+			c.timestamp = newTimestampCollector(f.relativeTimestamps)
 		case FieldIPID:
 			c.ipid = newIPIDCollector()
 		case FieldTTL:

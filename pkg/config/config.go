@@ -21,10 +21,11 @@ type DetectorConfig struct {
 
 type CollectorConfig struct {
 	Fields                 []string `yaml:"fields"`
-	TruncateIPs            bool     `yaml:"truncate_ips"` // Used by IP
-	MaxPacketCount         int      `yaml:"max_packets"`  // Used by any collector that calls processPacket
-	MaxClientPayloadLength int      `yaml:"cli_maxlen"`   // Used by Payload
-	MaxServerPayloadLength int      `yaml:"srv_maxlen"`   // Used by Payload
+	TruncateIPs            bool     `yaml:"truncate_ips"`        // Used by IP
+	RelativeTimestamps     bool     `yaml:"relative_timestamps"` // Used by Timestamp
+	MaxPacketCount         int      `yaml:"max_packets"`         // Used by any collector that calls processPacket
+	MaxClientPayloadLength int      `yaml:"cli_maxlen"`          // Used by Payload
+	MaxServerPayloadLength int      `yaml:"srv_maxlen"`          // Used by Payload
 }
 
 type TCPConfig struct {
