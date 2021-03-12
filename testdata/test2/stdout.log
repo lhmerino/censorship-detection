@@ -1,3 +1,4 @@
+Version: dev
 Detectors: [smtp_443_rstacks]
 Collectors:
   IP: 123.206.27.192->104.17.210.9

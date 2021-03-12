@@ -24,15 +24,24 @@ import (
 )
 
 var (
-	configFile = flag.String("config", "configs/config.yml", "Config file location")
-	pcapFile   = flag.String("pcap", "", "PCAP file")
-	iface      = flag.String("iface", "", "Interface to get packets from")
-	bpfFilter  = flag.String("bpf", "", "Override BPFFilter")
+	printVersion = flag.Bool("version", false, "Print version and exit")
+	configFile   = flag.String("config", "configs/config.yml", "Config file location")
+	pcapFile     = flag.String("pcap", "", "PCAP file")
+	iface        = flag.String("iface", "", "Interface to get packets from")
+	bpfFilter    = flag.String("bpf", "", "Override BPFFilter")
+
+	// Set at compile time with -ldflags
+	version = "dev"
 )
 
 func main() {
 	// Parse arguments
 	flag.Parse()
+
+	if *printVersion {
+		fmt.Printf("tripwire %s", version)
+		return
+	}
 
 	// Config file
 	cfg := config.ReadConfig(*configFile)
@@ -64,9 +73,11 @@ func run(cfg config.Config) {
 	case "json":
 		streamWriter = func(d []detector.Detector, c collector.Collector) {
 			bytes, err := json.Marshal(struct {
+				Version   string              `json:"version"`
 				Detectors []detector.Detector `json:"detectors"`
 				Collector collector.Collector `json:"collector"`
 			}{
+				Version:   version,
 				Detectors: d,
 				Collector: c,
 			})
@@ -79,7 +90,7 @@ func run(cfg config.Config) {
 		}
 	case "txt":
 		streamWriter = func(d []detector.Detector, c collector.Collector) {
-			fmt.Fprintf(cfg.StreamHandle, "Detectors: %s\nCollectors:\n%s\n", d, c)
+			fmt.Fprintf(cfg.StreamHandle, "Version: %s\nDetectors: %s\nCollectors:\n%s\n", version, d, c)
 		}
 	}
 
