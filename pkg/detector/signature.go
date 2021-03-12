@@ -5,17 +5,17 @@ import (
 	"github.com/Kkevsterrr/gopacket/reassembly"
 )
 
-// RST--RST-ACK heuristic, exhibited by the GFW (China)
+// RST--RST-ACK signature, exhibited by the GFW (China)
 // https://conferences.sigcomm.org/imc/2017/papers/imc17-final59.pdf
-type rstacksHeuristic struct {
+type rstacksSignature struct {
 	PSH, RSTACK1, RSTACK2, RSTACK3, RST1, RST2 bool
 }
 
-func newRSTACKsHeuristic() *rstacksHeuristic {
-	return &rstacksHeuristic{}
+func newRSTACKsSignature() *rstacksSignature {
+	return &rstacksSignature{}
 }
 
-func (r *rstacksHeuristic) processPacket(tcp *layers.TCP, dir reassembly.TCPFlowDirection) {
+func (r *rstacksSignature) processPacket(tcp *layers.TCP, dir reassembly.TCPFlowDirection) {
 	if dir != reassembly.TCPDirClientToServer {
 		return
 	}
@@ -34,22 +34,22 @@ func (r *rstacksHeuristic) processPacket(tcp *layers.TCP, dir reassembly.TCPFlow
 	}
 }
 
-func (r *rstacksHeuristic) detected() bool {
+func (r *rstacksSignature) detected() bool {
 	return (r.PSH && r.RSTACK1 && r.RST1) ||
 		(r.PSH && r.RSTACK1 && r.RSTACK2)
 }
 
-// WIN heuristic, exhibited by Airtel (India)
+// WIN signature, exhibited by Airtel (India)
 // See testdata/airtel_example.pcap and testdata/airtel_https_example.pcap.
-type windowHeuristic struct {
+type windowSignature struct {
 	PSH, WIN bool
 }
 
-func newWindowHeuristic() *windowHeuristic {
-	return &windowHeuristic{}
+func newWindowSignature() *windowSignature {
+	return &windowSignature{}
 }
 
-func (h *windowHeuristic) processPacket(tcp *layers.TCP, dir reassembly.TCPFlowDirection) {
+func (h *windowSignature) processPacket(tcp *layers.TCP, dir reassembly.TCPFlowDirection) {
 	if dir != reassembly.TCPDirClientToServer {
 		return
 	}
@@ -61,6 +61,6 @@ func (h *windowHeuristic) processPacket(tcp *layers.TCP, dir reassembly.TCPFlowD
 	}
 }
 
-func (h *windowHeuristic) detected() bool {
+func (h *windowSignature) detected() bool {
 	return h.PSH && h.WIN
 }

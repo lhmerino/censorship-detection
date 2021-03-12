@@ -13,7 +13,7 @@ import (
 
 type DetectorConfig struct {
 	Name      string `yaml:"name"` // name used for metrics logging
-	Heuristic string `yaml:"heuristic"`
+	Signature string `yaml:"signature"`
 	Protocol  string `yaml:"protocol"`
 	Filter    string `yaml:"filter"`
 	Port      uint16 `yaml:"port"`

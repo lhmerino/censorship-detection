@@ -22,16 +22,16 @@ parser:
 
 # Detectors
 detectors:
-  - heuristic: RSTACKs
+  - signature: RSTACKs
     protocol: HTTP
     port: 80
-  - heuristic: RSTACKs
+  - signature: RSTACKs
     protocol: SMTP
     port: 25
-  - heuristic: RSTACKs
+  - signature: RSTACKs
     protocol: HTTPS
     port: 443
-  - heuristic: RSTACKs
+  - signature: RSTACKs
     protocol: DNS
     port: 53
   - heuristic: WIN

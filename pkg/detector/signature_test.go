@@ -45,12 +45,12 @@ func TestUnitRSTACKs(t *testing.T) {
 	}
 
 	for _, packets := range tests {
-		heuristic := newRSTACKsHeuristic()
+		signature := newRSTACKsSignature()
 
 		for i, packet := range packets {
-			heuristic.processPacket(&packet.tcp, packet.dir)
-			if packet.detected != heuristic.detected() {
-				t.Errorf("packet %d: got %v, want %v", i, heuristic.detected(), packet.detected)
+			signature.processPacket(&packet.tcp, packet.dir)
+			if packet.detected != signature.detected() {
+				t.Errorf("packet %d: got %v, want %v", i, signature.detected(), packet.detected)
 			}
 		}
 	}
@@ -71,20 +71,20 @@ func TestUnitWin(t *testing.T) {
 			{detected: false, dir: reassembly.TCPDirClientToServer, tcp: layers.TCP{PSH: true}},
 			// ACK the PSH
 			{detected: false, dir: reassembly.TCPDirServerToClient, tcp: layers.TCP{ACK: true}},
-			// RST-ACK but wrong window value to trigger heuristic
+			// RST-ACK but wrong window value to trigger signature
 			{detected: false, dir: reassembly.TCPDirClientToServer, tcp: layers.TCP{RST: true, ACK: true, Window: 30}},
-			// RST-ACK with correct window value to trigger heuristic
+			// RST-ACK with correct window value to trigger signature
 			{detected: true, dir: reassembly.TCPDirClientToServer, tcp: layers.TCP{RST: true, ACK: true, Window: 16}},
 		},
 	}
 
 	for _, packets := range tests {
-		heuristic := newWindowHeuristic()
+		signature := newWindowSignature()
 
 		for i, packet := range packets {
-			heuristic.processPacket(&packet.tcp, packet.dir)
-			if packet.detected != heuristic.detected() {
-				t.Errorf("packet %d: got %v, want %v", i, heuristic.detected(), packet.detected)
+			signature.processPacket(&packet.tcp, packet.dir)
+			if packet.detected != signature.detected() {
+				t.Errorf("packet %d: got %v, want %v", i, signature.detected(), packet.detected)
 			}
 		}
 	}

@@ -13,7 +13,7 @@ parser:
 
 # Detectors
 detectors:
-  - heuristic: WIN
+  - signature: WIN
     protocol: HTTP
     port: 80
 

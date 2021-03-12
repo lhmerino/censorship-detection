@@ -30,18 +30,18 @@ var protocolMap = map[string]ProtocolType{
 	"smtp":  ProtocolSMTP,
 }
 
-type HeuristicType int
+type SignatureType int
 
 const (
-	HeuristicAny HeuristicType = iota
-	HeuristicRSTACKs
-	HeuristicWIN
+	SignatureAny SignatureType = iota
+	SignatureRSTACKs
+	SignatureWIN
 )
 
-var heuristicMap = map[string]HeuristicType{
-	"any":     HeuristicAny,
-	"rstacks": HeuristicRSTACKs,
-	"win":     HeuristicWIN,
+var signatureMap = map[string]SignatureType{
+	"any":     SignatureAny,
+	"rstacks": SignatureRSTACKs,
+	"win":     SignatureWIN,
 }
 
 type DetectorFactory interface {
@@ -58,14 +58,14 @@ type Detector interface {
 	ProcessPacket(packet gopacket.Packet, tcp *layers.TCP, ci gopacket.CaptureInfo, dir reassembly.TCPFlowDirection)
 	ProcessReassembled(sg *reassembly.ScatterGather, ac *reassembly.AssemblerContext, dir reassembly.TCPFlowDirection)
 	ProtocolDetected() bool  // whether or not protocol is detected
-	HeuristicDetected() bool // whether or not heuristic detects disruption
+	SignatureDetected() bool // whether or not signature detects disruption
 }
 
 type detectorFactory struct {
 	label     string
 	port      uint16
 	protocol  ProtocolType
-	heuristic HeuristicType
+	signature SignatureType
 }
 
 type detector struct {
@@ -79,10 +79,10 @@ type detector struct {
 	dns         *dnsProtocol
 	smtp        *smtpProtocol
 
-	// heuristics
-	anyHeuristic bool
-	rstacks      *rstacksHeuristic
-	win          *windowHeuristic
+	// signatures
+	anySignature bool
+	rstacks      *rstacksSignature
+	win          *windowSignature
 }
 
 func NewDetectorFactory(cfg config.DetectorConfig) (DetectorFactory, error) {
@@ -90,7 +90,7 @@ func NewDetectorFactory(cfg config.DetectorConfig) (DetectorFactory, error) {
 
 	f.label = cfg.Name
 	if f.label == "" {
-		f.label = fmt.Sprintf("%s_%d_%s", strings.ToLower(cfg.Protocol), cfg.Port, strings.ToLower(cfg.Heuristic))
+		f.label = fmt.Sprintf("%s_%d_%s", strings.ToLower(cfg.Protocol), cfg.Port, strings.ToLower(cfg.Signature))
 	}
 
 	f.port = cfg.Port
@@ -99,8 +99,8 @@ func NewDetectorFactory(cfg config.DetectorConfig) (DetectorFactory, error) {
 	if f.protocol, ok = protocolMap[strings.ToLower(cfg.Protocol)]; !ok {
 		return nil, fmt.Errorf("[Config] Invalid Protocol %s\n", cfg.Protocol)
 	}
-	if f.heuristic, ok = heuristicMap[strings.ToLower(cfg.Heuristic)]; !ok {
-		return nil, fmt.Errorf("[Config] Invalid Heuristic %s\n", cfg.Heuristic)
+	if f.signature, ok = signatureMap[strings.ToLower(cfg.Signature)]; !ok {
+		return nil, fmt.Errorf("[Config] Invalid Signature %s\n", cfg.Signature)
 	}
 
 	return &f, nil
@@ -123,13 +123,13 @@ func (f *detectorFactory) NewDetector(net, transport gopacket.Flow, tcp *layers.
 		d.anyProtocol = true
 	}
 
-	switch f.heuristic {
-	case HeuristicRSTACKs:
-		d.rstacks = newRSTACKsHeuristic()
-	case HeuristicWIN:
-		d.win = newWindowHeuristic()
-	case HeuristicAny:
-		d.anyHeuristic = true
+	switch f.signature {
+	case SignatureRSTACKs:
+		d.rstacks = newRSTACKsSignature()
+	case SignatureWIN:
+		d.win = newWindowSignature()
+	case SignatureAny:
+		d.anySignature = true
 	}
 	return &d
 }
@@ -177,7 +177,7 @@ func (d *detector) ProcessPacket(packet gopacket.Packet, tcp *layers.TCP,
 		d.smtp.processPacket(packet)
 	}
 
-	// heuristics
+	// signatures
 	if d.rstacks != nil {
 		d.rstacks.processPacket(tcp, dir)
 	}
@@ -188,7 +188,7 @@ func (d *detector) ProcessPacket(packet gopacket.Packet, tcp *layers.TCP,
 
 func (d *detector) ProcessReassembled(sg *reassembly.ScatterGather,
 	ac *reassembly.AssemblerContext, dir reassembly.TCPFlowDirection) {
-	// no current heuristics process the reassembled payload
+	// no current signatures process the reassembled payload
 }
 
 func (d *detector) ProtocolDetected() (detected bool) {
@@ -210,8 +210,8 @@ func (d *detector) ProtocolDetected() (detected bool) {
 	return
 }
 
-func (d *detector) HeuristicDetected() (detected bool) {
-	if d.anyHeuristic {
+func (d *detector) SignatureDetected() (detected bool) {
+	if d.anySignature {
 		return true
 	}
 	if d.rstacks != nil && d.rstacks.detected() {

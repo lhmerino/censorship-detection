@@ -15,7 +15,7 @@ parser:
 
 # Detectors
 detectors:
-  - heuristic: RSTACKs
+  - signature: RSTACKs
     protocol: SMTP
     port: 443
 

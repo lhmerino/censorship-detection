@@ -15,13 +15,13 @@ parser:
 
 # Detectors
 detectors:
-  - heuristic: RSTACKs
+  - signature: RSTACKs
     protocol: HTTP
     port: 9999
-  - heuristic: RSTACKs
+  - signature: RSTACKs
     protocol: HTTP
     port: 80 
-  - heuristic: RSTACKs
+  - signature: RSTACKs
     protocol: HTTP
     port: 7777
 

@@ -12,14 +12,14 @@ func TestUnitDetectorFactory(t *testing.T) {
 	var detectorConfigs []config.DetectorConfig
 	detectorConfigs = append(detectorConfigs,
 		config.DetectorConfig{
-			Heuristic: "RSTACKs",
+			Signature: "RSTACKs",
 			Protocol:  "HTTP",
 			Port:      80,
 		})
 
 	detectorConfigs = append(detectorConfigs,
 		config.DetectorConfig{
-			Heuristic: "ANY",
+			Signature: "ANY",
 			Protocol:  "ANY",
 			Port:      8080,
 		})
@@ -51,8 +51,8 @@ func TestUnitDetectorFactory(t *testing.T) {
 		t.Fatalf("Expected %v but got %v", 1, len(relevantDetectors))
 	}
 
-	if !relevantDetectors[0].HeuristicDetected() {
-		t.Fatalf("Expected %v but got %v", true, relevantDetectors[0].HeuristicDetected())
+	if !relevantDetectors[0].SignatureDetected() {
+		t.Fatalf("Expected %v but got %v", true, relevantDetectors[0].SignatureDetected())
 	}
 
 	if relevantDetectors[0].Label() != "any_8080_any" {

@@ -180,7 +180,7 @@ func (t *tcpStream) Destroy() {
 		if !det.ProtocolDetected() {
 			continue
 		}
-		disrupted := det.HeuristicDetected()
+		disrupted := det.SignatureDetected()
 		if disrupted {
 			detectors = append(detectors, det)
 		}
