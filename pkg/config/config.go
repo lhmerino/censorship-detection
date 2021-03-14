@@ -12,11 +12,13 @@ import (
 )
 
 type DetectorConfig struct {
-	Name      string `yaml:"name"` // name used for metrics logging
-	Signature string `yaml:"signature"`
-	Protocol  string `yaml:"protocol"`
-	Filter    string `yaml:"filter"`
-	Port      uint16 `yaml:"port"`
+	Name            string `yaml:"name"` // name used for metrics logging
+	Signature       string `yaml:"signature"`
+	Protocol        string `yaml:"protocol"`
+	Filter          string `yaml:"filter"`
+	Port            uint16 `yaml:"port"`
+	TimeThresholdMs int    `yaml:"time_thresh"`
+	PacketThreshold int    `yaml:"pkt_thresh"`
 }
 
 type CollectorConfig struct {

@@ -20,7 +20,23 @@ detectors:
     port: 80
   - signature: RSTACKs
     protocol: HTTPS
-    port: 443 
+    port: 443
+  - signature: Time
+    protocol: HTTP
+    port: 80
+    time_thresh: 200
+  - signature: Time
+    protocol: HTTPS
+    port: 443
+    time_thresh: 200
+  - signature: PacketCount
+    protocol: HTTP
+    port: 80
+    pkt_thresh: 5
+  - signature: PacketCount
+    protocol: HTTPS
+    port: 443
+    pkt_thresh: 5
 
 # Data Collector
 collector:

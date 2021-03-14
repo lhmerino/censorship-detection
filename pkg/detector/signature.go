@@ -1,8 +1,10 @@
 package detector
 
 import (
+	"github.com/Kkevsterrr/gopacket"
 	"github.com/Kkevsterrr/gopacket/layers"
 	"github.com/Kkevsterrr/gopacket/reassembly"
+	"time"
 )
 
 // RST--RST-ACK signature, exhibited by the GFW (China)
@@ -63,4 +65,60 @@ func (h *windowSignature) processPacket(tcp *layers.TCP, dir reassembly.TCPFlowD
 
 func (h *windowSignature) detected() bool {
 	return h.PSH && h.WIN
+}
+
+// Connection Time Signature
+type TimeSignature struct {
+	threshold       time.Duration
+	firstPacketTime time.Time
+	lastPacketTime  time.Time
+}
+
+// Threshold defined in milliseconds
+func newTimeSignature(threshold int) *TimeSignature {
+	return &TimeSignature{
+		threshold: time.Duration(threshold) * time.Millisecond,
+	}
+}
+
+func (s *TimeSignature) processPacket(ci gopacket.CaptureInfo, dir reassembly.TCPFlowDirection) {
+	if dir == reassembly.TCPDirServerToClient {
+		return
+	}
+	if s.firstPacketTime.IsZero() {
+		s.firstPacketTime = ci.Timestamp
+	} else {
+		s.lastPacketTime = ci.Timestamp
+	}
+}
+
+func (s *TimeSignature) detected() bool {
+	if s.lastPacketTime.IsZero() {
+		return false
+	}
+	return s.lastPacketTime.Sub(s.firstPacketTime) <= s.threshold
+}
+
+// Packet Count Signature
+type PacketCountSignature struct {
+	threshold   int
+	packetCount int
+}
+
+func newPacketCountSignature(threshold int) *PacketCountSignature {
+	return &PacketCountSignature{
+		threshold:   threshold,
+		packetCount: 0,
+	}
+}
+
+func (s *PacketCountSignature) processPacket(dir reassembly.TCPFlowDirection) {
+	if dir == reassembly.TCPDirServerToClient {
+		return
+	}
+	s.packetCount += 1
+}
+
+func (s *PacketCountSignature) detected() bool {
+	return s.packetCount <= s.threshold && s.packetCount != 0
 }

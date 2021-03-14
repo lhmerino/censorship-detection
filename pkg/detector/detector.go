@@ -36,12 +36,16 @@ const (
 	SignatureAny SignatureType = iota
 	SignatureRSTACKs
 	SignatureWIN
+	SignatureTime
+	SignaturePacketCount
 )
 
 var signatureMap = map[string]SignatureType{
-	"any":     SignatureAny,
-	"rstacks": SignatureRSTACKs,
-	"win":     SignatureWIN,
+	"any":         SignatureAny,
+	"rstacks":     SignatureRSTACKs,
+	"win":         SignatureWIN,
+	"time":        SignatureTime,
+	"packetcount": SignaturePacketCount,
 }
 
 type DetectorFactory interface {
@@ -66,6 +70,10 @@ type detectorFactory struct {
 	port      uint16
 	protocol  ProtocolType
 	signature SignatureType
+
+	// extra options
+	timeThresholdMs int // time detector
+	packetThreshold int // packetCount detector
 }
 
 type detector struct {
@@ -83,6 +91,8 @@ type detector struct {
 	anySignature bool
 	rstacks      *rstacksSignature
 	win          *windowSignature
+	time         *TimeSignature
+	packetCount  *PacketCountSignature
 }
 
 func NewDetectorFactory(cfg config.DetectorConfig) (DetectorFactory, error) {
@@ -94,6 +104,14 @@ func NewDetectorFactory(cfg config.DetectorConfig) (DetectorFactory, error) {
 	}
 
 	f.port = cfg.Port
+	f.timeThresholdMs = cfg.TimeThresholdMs
+	if f.timeThresholdMs == 0 {
+		f.timeThresholdMs = 10
+	}
+	f.packetThreshold = cfg.PacketThreshold
+	if f.packetThreshold == 0 {
+		f.packetThreshold = 10
+	}
 
 	var ok bool
 	if f.protocol, ok = protocolMap[strings.ToLower(cfg.Protocol)]; !ok {
@@ -128,6 +146,10 @@ func (f *detectorFactory) NewDetector(net, transport gopacket.Flow, tcp *layers.
 		d.rstacks = newRSTACKsSignature()
 	case SignatureWIN:
 		d.win = newWindowSignature()
+	case SignatureTime:
+		d.time = newTimeSignature(f.timeThresholdMs)
+	case SignaturePacketCount:
+		d.packetCount = newPacketCountSignature(f.packetThreshold)
 	case SignatureAny:
 		d.anySignature = true
 	}
@@ -184,6 +206,12 @@ func (d *detector) ProcessPacket(packet gopacket.Packet, tcp *layers.TCP,
 	if d.win != nil {
 		d.win.processPacket(tcp, dir)
 	}
+	if d.time != nil {
+		d.time.processPacket(ci, dir)
+	}
+	if d.packetCount != nil {
+		d.packetCount.processPacket(dir)
+	}
 }
 
 func (d *detector) ProcessReassembled(sg *reassembly.ScatterGather,
@@ -218,6 +246,12 @@ func (d *detector) SignatureDetected() (detected bool) {
 		detected = true
 	}
 	if d.win != nil && d.win.detected() {
+		detected = true
+	}
+	if d.time != nil && d.time.detected() {
+		detected = true
+	}
+	if d.packetCount != nil && d.packetCount.detected() {
 		detected = true
 	}
 	return

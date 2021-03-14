@@ -4,7 +4,11 @@ INFO Running parser
 INFO Read from pcap: "testdata/tripwire-1597963966.pcap"
 INFO End of PCAP
 INFO global_packets: 871 tcp, 0 other
-INFO global_streams: 81 total, 39 disrupted
+INFO global_streams: 81 total, 44 disrupted
 INFO http_80_rstacks: 30 total, 27 disrupted
 INFO https_443_rstacks: 16 total, 12 disrupted
+INFO http_80_time: 30 total, 15 disrupted
+INFO https_443_time: 16 total, 7 disrupted
+INFO http_80_packetcount: 30 total, 13 disrupted
+INFO https_443_packetcount: 16 total, 8 disrupted
 INFO Stopping metrics server
