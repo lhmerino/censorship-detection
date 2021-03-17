@@ -3,25 +3,30 @@
 Status Badges  
 ![Go](https://github.com/Kkevsterrr/censorship-detection/workflows/Go/badge.svg)
 
-## App
-
 Bulk of the application that monitors live traffic and detects censorship flows
 
-### Configuration
-- config/config.yml
+## Usage
 
-### Run
+### Build tripwire executable
 
-Demo run (pcap) of a censored flow
+	go build -o tripwire ./cmd/tripwire
 
-```shell script
-go build -o ./bin/tripwire ./cmd/tripwire
-bin/tripwire -config configs/config.yml
-```
+### Run using the default config
 
-### Tests
+	tripwire -iface eth0
 
-```shell script
-go test ./...
-```
+### Run using a custom configuration
 
+	tripwire -config config.yml
+
+### Dump default configuration
+
+	tripwire -dump-config > config.yml
+
+### Run unit tests
+
+	go test ./...
+
+### Update test files
+
+	go test ./cmd/tripwire -update

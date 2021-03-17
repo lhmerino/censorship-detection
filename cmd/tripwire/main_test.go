@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"flag"
 	"io/ioutil"
 	"os"
 	"sort"
@@ -13,6 +14,11 @@ import (
 	"tripwire/pkg/util/logger"
 )
 
+var update = flag.Bool("update", false, "update expected output ('golden') files")
+
+// Regression tests to ensure that the tripwire output does not change
+// unexpectedly.  Inspired by
+// https://medium.com/@jarifibrahim/golden-files-why-you-should-use-them-47087ec994bf.
 func TestIntegrationMain(t *testing.T) {
 
 	// Change working directory
@@ -25,13 +31,14 @@ func TestIntegrationMain(t *testing.T) {
 		config string
 		stderr string
 		stdout string
+		sort   bool
 	}{
-		{name: "test1", config: "testdata/test1/config.yml", stderr: "testdata/test1/stderr.log", stdout: "testdata/test1/stdout.log"},
-		{name: "test2", config: "testdata/test2/config.yml", stderr: "testdata/test2/stderr.log", stdout: "testdata/test2/stdout.log"},
-		{name: "test3", config: "testdata/test3/config.yml", stderr: "testdata/test3/stderr.log", stdout: "testdata/test3/stdout.log"},
-		{name: "test4", config: "testdata/test4/config.yml", stderr: "testdata/test4/stderr.log", stdout: "testdata/test4/stdout.log"},
-		{name: "test5", config: "testdata/test5/config.yml", stderr: "testdata/test5/stderr.log", stdout: "testdata/test5/stdout.log"},
-		{name: "test6", config: "testdata/test6/config.yml", stderr: "testdata/test6/stderr.log", stdout: "testdata/test6/stdout.log"},
+		{name: "test1", config: "testdata/test1/config.yml", stderr: "testdata/test1/stderr.log", stdout: "testdata/test1/stdout.log", sort: false},
+		{name: "test2", config: "testdata/test2/config.yml", stderr: "testdata/test2/stderr.log", stdout: "testdata/test2/stdout.log", sort: false},
+		{name: "test3", config: "testdata/test3/config.yml", stderr: "testdata/test3/stderr.log", stdout: "testdata/test3/stdout.log", sort: true},
+		{name: "test4", config: "testdata/test4/config.yml", stderr: "testdata/test4/stderr.log", stdout: "testdata/test4/stdout.log", sort: true},
+		{name: "test5", config: "testdata/test5/config.yml", stderr: "testdata/test5/stderr.log", stdout: "testdata/test5/stdout.log", sort: true},
+		{name: "test6", config: "testdata/test6/config.yml", stderr: "testdata/test6/stderr.log", stdout: "testdata/test6/stdout.log", sort: true},
 	}
 
 	for _, test := range tests {
@@ -44,17 +51,37 @@ func TestIntegrationMain(t *testing.T) {
 		cfg := config.ReadConfig(test.config)
 
 		// Redirect logging
-		var actualStderr, actualStdout bytes.Buffer
+		var stderrBuffer, stdoutBuffer bytes.Buffer
 		if cfg.Logger.Debug {
-			logger.Debug.SetOutput(&actualStderr)
+			logger.Debug.SetOutput(&stderrBuffer)
 		}
-		logger.Info.SetOutput(&actualStderr)
-		cfg.StreamHandle = &actualStdout
+		logger.Info.SetOutput(&stderrBuffer)
+		cfg.StreamHandle = &stdoutBuffer
 
 		// Run Application
 		run(cfg)
 
-		// Compare output
+		actualStderr := stderrBuffer.Bytes()
+		actualStdout := stdoutBuffer.Bytes()
+
+		if test.sort {
+			// sort stdout
+			tmp := strings.SplitAfter(stdoutBuffer.String(), "\n")
+			sort.Strings(tmp)
+			actualStdout = []byte(strings.Join(tmp, ""))
+		}
+
+		// Update tests if '--update' flag specified
+		if *update {
+			if err := ioutil.WriteFile(test.stderr, actualStderr, 0644); err != nil {
+				t.Fatal(err)
+			}
+			if err := ioutil.WriteFile(test.stdout, actualStdout, 0644); err != nil {
+				t.Fatal(err)
+			}
+		}
+
+		// Get expected output from golden files
 		expectedStderr, err := ioutil.ReadFile(test.stderr)
 		if err != nil {
 			t.Fatalf("%v", err)
@@ -64,12 +91,12 @@ func TestIntegrationMain(t *testing.T) {
 			t.Fatalf("%v", err)
 		}
 
-		// Print order is non-deterministic, so compare sorted output lines
-		if !compareSortedLines(expectedStderr, actualStderr.Bytes()) {
-			t.Fatalf("Contents do not match for %v", test.name)
+		// Compare output
+		if !bytes.Equal(expectedStderr, actualStderr) {
+			t.Fatalf("stderr does not match for %v", test.name)
 		}
-		if !compareSortedLines(expectedStdout, actualStdout.Bytes()) {
-			t.Fatalf("Contents do not match for %v", test.name)
+		if !bytes.Equal(expectedStdout, actualStdout) {
+			t.Fatalf("stdout does not match for %v", test.name)
 		}
 	}
 
@@ -98,11 +125,4 @@ func BenchmarkTripwire(b *testing.B) {
 	if err := os.Chdir("cmd/tripwire"); err != nil {
 		b.Fatal(err)
 	}
-}
-
-func compareSortedLines(a, b []byte) bool {
-	splitA, splitB := strings.Split(string(a), "\n"), strings.Split(string(b), "\n")
-	sort.Strings(splitA)
-	sort.Strings(splitB)
-	return strings.Join(splitA, "\n") == strings.Join(splitB, "\n")
 }
