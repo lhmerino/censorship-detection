@@ -1,6 +1,5 @@
 INFO Initialized detectors
 INFO Initialized collectors
-DEBUG BPF Filter: (tcp and port 443)
 INFO Running parser
 INFO Read from pcap: "testdata/test2/smtp.pcap"
 DEBUG 123.206.27.192->104.17.210.9 50914->443: New Connection

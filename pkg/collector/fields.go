@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"tripwire/pkg/util/logger"
+	"tripwire/pkg/logger"
 
 	"github.com/Kkevsterrr/gopacket"
 	"github.com/Kkevsterrr/gopacket/layers"

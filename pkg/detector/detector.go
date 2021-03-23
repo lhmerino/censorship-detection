@@ -52,7 +52,6 @@ type DetectorFactory interface {
 	Label() string
 	RelevantToConnection(net, transport gopacket.Flow) bool
 	NewDetector(net, transport gopacket.Flow, tcp *layers.TCP) Detector
-	BPFFilter() string
 }
 
 type Detector interface {
@@ -98,21 +97,6 @@ type detector struct {
 func NewDetectorFactory(cfg config.DetectorConfig) (DetectorFactory, error) {
 	var f detectorFactory
 
-	f.label = cfg.Name
-	if f.label == "" {
-		f.label = fmt.Sprintf("%s_%d_%s", strings.ToLower(cfg.Protocol), cfg.Port, strings.ToLower(cfg.Signature))
-	}
-
-	f.port = cfg.Port
-	f.timeThresholdMs = cfg.TimeThresholdMs
-	if f.timeThresholdMs == 0 {
-		f.timeThresholdMs = 10
-	}
-	f.packetThreshold = cfg.PacketThreshold
-	if f.packetThreshold == 0 {
-		f.packetThreshold = 10
-	}
-
 	var ok bool
 	if f.protocol, ok = protocolMap[strings.ToLower(cfg.Protocol)]; !ok {
 		return nil, fmt.Errorf("[Config] Invalid Protocol %s\n", cfg.Protocol)
@@ -120,6 +104,11 @@ func NewDetectorFactory(cfg config.DetectorConfig) (DetectorFactory, error) {
 	if f.signature, ok = signatureMap[strings.ToLower(cfg.Signature)]; !ok {
 		return nil, fmt.Errorf("[Config] Invalid Signature %s\n", cfg.Signature)
 	}
+
+	f.label = cfg.Name
+	f.port = cfg.Port
+	f.timeThresholdMs = cfg.TimeThresholdMs
+	f.packetThreshold = cfg.PacketThreshold
 
 	return &f, nil
 }
@@ -158,10 +147,6 @@ func (f *detectorFactory) NewDetector(net, transport gopacket.Flow, tcp *layers.
 
 func (f *detectorFactory) Label() string {
 	return f.label
-}
-
-func (f *detectorFactory) BPFFilter() string {
-	return fmt.Sprintf("tcp and port %d", f.port)
 }
 
 func (f *detectorFactory) RelevantToConnection(net, transport gopacket.Flow) bool {

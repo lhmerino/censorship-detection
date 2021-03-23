@@ -8,10 +8,9 @@ import (
 	"sort"
 	"strings"
 	"testing"
-	"tripwire/pkg/config"
+	"tripwire/pkg/logger"
 	"tripwire/pkg/parser"
 	"tripwire/pkg/tcpstream"
-	"tripwire/pkg/util/logger"
 )
 
 var update = flag.Bool("update", false, "update expected output ('golden') files")
@@ -48,7 +47,7 @@ func TestIntegrationMain(t *testing.T) {
 		tcpstream.StreamsCount.Reset()
 
 		// Read config
-		cfg := config.ReadConfig(test.config)
+		cfg := readConfig(test.config)
 
 		// Redirect logging
 		var stderrBuffer, stdoutBuffer bytes.Buffer
@@ -56,7 +55,7 @@ func TestIntegrationMain(t *testing.T) {
 			logger.Debug.SetOutput(&stderrBuffer)
 		}
 		logger.Info.SetOutput(&stderrBuffer)
-		cfg.StreamHandle = &stdoutBuffer
+		logger.StreamWriter = &stdoutBuffer
 
 		// Run Application
 		run(cfg)
@@ -113,7 +112,7 @@ func BenchmarkTripwire(b *testing.B) {
 	}
 
 	// Read config
-	cfg := config.ReadConfig("testdata/bench1/config.yml")
+	cfg := readConfig("testdata/bench1/config.yml")
 
 	// Discard output
 	logger.Info.SetOutput(ioutil.Discard)

@@ -1,6 +1,5 @@
 INFO Initialized detectors
 INFO Initialized collectors
-DEBUG BPF Filter: (tcp and port 9999) or (tcp and port 80) or (tcp and port 7777)
 INFO Running parser
 INFO Read from pcap: "testdata/test1/test.pcap"
 DEBUG 222.222.222.222->172.172.172.172 59710->9999: New Connection

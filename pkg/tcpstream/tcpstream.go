@@ -8,7 +8,7 @@ import (
 	"tripwire/pkg/collector"
 	"tripwire/pkg/config"
 	"tripwire/pkg/detector"
-	"tripwire/pkg/util/logger"
+	"tripwire/pkg/logger"
 
 	"github.com/Kkevsterrr/gopacket"
 	"github.com/Kkevsterrr/gopacket/layers"

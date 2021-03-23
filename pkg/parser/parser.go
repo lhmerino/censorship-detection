@@ -1,11 +1,12 @@
 package parser
 
 import (
+	"errors"
 	"os"
 	"time"
 
 	"tripwire/pkg/config"
-	"tripwire/pkg/util/logger"
+	"tripwire/pkg/logger"
 
 	"github.com/Kkevsterrr/gopacket"
 	"github.com/Kkevsterrr/gopacket/layers"
@@ -48,8 +49,14 @@ type parser struct {
 	flush int
 }
 
-func NewParser(cfg config.ParserConfig, streamFactory reassembly.StreamFactory) *parser {
-	// Set up assembler
+func NewParser(cfg config.ParserConfig, streamFactory reassembly.StreamFactory) (*parser, error) {
+	// Validate config
+	if cfg.Input.PcapFile == "" && cfg.Input.Interface == "" {
+		return nil, errors.New("[Config] No input source specified")
+	}
+	if cfg.Input.PcapFile != "" && cfg.Input.Interface != "" {
+		return nil, errors.New("[Config] Please specify only a single input source")
+	}
 	streamPool := reassembly.NewStreamPool(streamFactory)
 	return &parser{
 		assembler: reassembly.NewAssembler(streamPool),
@@ -58,7 +65,7 @@ func NewParser(cfg config.ParserConfig, streamFactory reassembly.StreamFactory) 
 		filter:    cfg.Filter.BPF,
 		snaplen:   cfg.SnapLen,
 		flush:     cfg.Flush,
-	}
+	}, nil
 }
 
 func (p *parser) Run(signalChan chan os.Signal) error {

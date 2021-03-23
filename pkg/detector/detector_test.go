@@ -12,6 +12,7 @@ func TestUnitDetectorFactory(t *testing.T) {
 	var detectorConfigs []config.DetectorConfig
 	detectorConfigs = append(detectorConfigs,
 		config.DetectorConfig{
+			Name:      "http_80_rstacks",
 			Signature: "RSTACKs",
 			Protocol:  "HTTP",
 			Port:      80,
@@ -19,6 +20,7 @@ func TestUnitDetectorFactory(t *testing.T) {
 
 	detectorConfigs = append(detectorConfigs,
 		config.DetectorConfig{
+			Name:      "any_8080_any",
 			Signature: "ANY",
 			Protocol:  "ANY",
 			Port:      8080,

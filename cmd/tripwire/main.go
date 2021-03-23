@@ -4,38 +4,38 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 
 	"tripwire/pkg/collector"
 	"tripwire/pkg/config"
 	"tripwire/pkg/detector"
+	"tripwire/pkg/logger"
 	"tripwire/pkg/metrics"
 	"tripwire/pkg/parser"
 	"tripwire/pkg/tcpstream"
-	"tripwire/pkg/util/logger"
 
 	"github.com/pkg/errors"
 )
 
 var (
-	printVersion = flag.Bool("version", false, "Print version and exit")
-	configFile   = flag.String("config", "configs/config.yml", "Config file location")
-	pcapFile     = flag.String("pcap", "", "PCAP file")
-	iface        = flag.String("iface", "", "Interface to get packets from")
-	bpfFilter    = flag.String("bpf", "", "Override BPFFilter")
+	printVersion = flag.Bool("version", false, "Print version and exit.")
+	dumpConfig   = flag.Bool("dump-config", false, "Print current configuration and exit.")
+	configFile   = flag.String("config", "", "Config file to use. Defaults are applied for any unspecified options.")
+	pcapFile     = flag.String("pcap", "", "Read packets from pcap file. Standard input is used if set to ``-''.")
+	iface        = flag.String("iface", "", "Interface on which to listen.")
+	bpfFilter    = flag.String("bpf", "", "BPF to filter input packets.")
 
 	// Set at compile time with -ldflags
 	version = "dev"
 )
 
 func main() {
-	// Parse arguments
 	flag.Parse()
 
 	if *printVersion {
@@ -43,14 +43,40 @@ func main() {
 		return
 	}
 
-	// Config file
-	cfg := config.ReadConfig(*configFile)
+	var cfg *config.Config
+	if *configFile != "" {
+		cfg = readConfig(*configFile)
+	} else {
+		cfg = config.DefaultConfig()
+	}
 
-	// Override common arguments
-	overrideArgs(&cfg)
+	// Override config with command-line arguments
+	overrideArgs(cfg)
+
+	if *dumpConfig {
+		if err := cfg.Write(os.Stdout); err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
 
 	// Run Application
 	run(cfg)
+}
+
+// readConfig reads a configuration from file, applying defaults for
+// unspecified options
+func readConfig(filename string) *config.Config {
+	f, err := os.Open(filename)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer f.Close()
+	cfg := new(config.Config)
+	if err = cfg.Read(f); err != nil {
+		log.Fatal(err)
+	}
+	return cfg
 }
 
 func overrideArgs(cfg *config.Config) {
@@ -65,13 +91,13 @@ func overrideArgs(cfg *config.Config) {
 	}
 }
 
-func run(cfg config.Config) {
+func run(cfg *config.Config) {
 
 	// Set up stream writer
-	streamWriter := func([]detector.Detector, collector.Collector) {}
+	streamWriterFunc := func([]detector.Detector, collector.Collector) {}
 	switch cfg.Logger.Outform {
 	case "json":
-		streamWriter = func(d []detector.Detector, c collector.Collector) {
+		streamWriterFunc = func(d []detector.Detector, c collector.Collector) {
 			bytes, err := json.Marshal(struct {
 				Version   string              `json:"version"`
 				Detectors []detector.Detector `json:"detectors"`
@@ -85,18 +111,23 @@ func run(cfg config.Config) {
 			if err != nil {
 				log.Fatal(err)
 			} else {
-				fmt.Fprintln(cfg.StreamHandle, string(bytes))
+				fmt.Fprintln(logger.StreamWriter, string(bytes))
 			}
 		}
 	case "txt":
-		streamWriter = func(d []detector.Detector, c collector.Collector) {
-			fmt.Fprintf(cfg.StreamHandle, "Version: %s\nDetectors: %s\nCollectors:\n%s\n", version, d, c)
+		streamWriterFunc = func(d []detector.Detector, c collector.Collector) {
+			fmt.Fprintf(logger.StreamWriter, "Version: %s\nDetectors: %s\nCollectors:\n%s\n", version, d, c)
 		}
+	}
+
+	// Configure debug logging
+	if !cfg.Logger.Debug {
+		logger.Debug.SetOutput(ioutil.Discard)
 	}
 
 	// Set up detector factories
 	var dfs []detector.DetectorFactory
-	for _, dc := range cfg.DetectorConfigs {
+	for _, dc := range cfg.Detectors {
 		df, err := detector.NewDetectorFactory(dc)
 		if err != nil {
 			log.Fatal(err)
@@ -106,28 +137,20 @@ func run(cfg config.Config) {
 	logger.Info.Printf("Initialized detectors")
 
 	// Set up collector factory
-	cf, err := collector.NewCollectorFactory(cfg.CollectorConfig)
+	cf, err := collector.NewCollectorFactory(cfg.Collector)
 	if err != nil {
 		log.Fatal(err)
 	}
 	logger.Info.Printf("Initialized collectors")
 
-	// Construct BPF Filter (if not specified in arguments) to only
-	// select flows that are relevant to the detectors created
-	if cfg.Parser.Filter.BPF == "" {
-		var filters []string
-		for _, df := range dfs {
-			filters = append(filters, fmt.Sprintf("(%s)", df.BPFFilter()))
-		}
-		cfg.Parser.Filter.BPF = strings.Join(filters, " or ")
-	}
-	logger.Debug.Printf("BPF Filter: %s", cfg.Parser.Filter.BPF)
-
 	// Set up stream factory
-	sf := tcpstream.NewTCPStreamFactory(cfg.Parser.TCPConfig, cf, dfs, streamWriter)
+	sf := tcpstream.NewTCPStreamFactory(cfg.Parser.TCP, cf, dfs, streamWriterFunc)
 
 	// Set up parser
-	p := parser.NewParser(cfg.Parser, sf)
+	p, err := parser.NewParser(cfg.Parser, sf)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// Set up metrics
 	server := &http.Server{}

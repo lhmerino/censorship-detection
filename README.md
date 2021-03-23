@@ -11,15 +11,19 @@ Bulk of the application that monitors live traffic and detects censorship flows
 
 	go build -o tripwire ./cmd/tripwire
 
-### Run using the default config
+### Print usage
 
-	tripwire -iface eth0
+	tripwire -h
+
+### Run using the default config on specified pcap or interface
+
+	tripwire [-pcap pcapfile | -iface interface]
 
 ### Run using a custom configuration
 
 	tripwire -config config.yml
 
-### Dump default configuration
+### Dump current config
 
 	tripwire -dump-config > config.yml
 
