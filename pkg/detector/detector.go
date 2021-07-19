@@ -192,10 +192,10 @@ func (d *detector) ProcessPacket(packet gopacket.Packet, tcp *layers.TCP,
 		d.win.processPacket(tcp, dir)
 	}
 	if d.time != nil {
-		d.time.processPacket(ci, dir)
+		d.time.processPacket(tcp, ci, dir)
 	}
 	if d.packetCount != nil {
-		d.packetCount.processPacket(dir)
+		d.packetCount.processPacket(tcp, dir)
 	}
 }
 

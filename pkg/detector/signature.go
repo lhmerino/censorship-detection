@@ -70,6 +70,7 @@ func (h *windowSignature) detected() bool {
 // Connection Time Signature
 type TimeSignature struct {
 	threshold       time.Duration
+	pshPacket       bool
 	firstPacketTime time.Time
 	lastPacketTime  time.Time
 }
@@ -81,27 +82,31 @@ func newTimeSignature(threshold int) *TimeSignature {
 	}
 }
 
-func (s *TimeSignature) processPacket(ci gopacket.CaptureInfo, dir reassembly.TCPFlowDirection) {
+func (s *TimeSignature) processPacket(tcp *layers.TCP, ci gopacket.CaptureInfo, dir reassembly.TCPFlowDirection) {
 	if dir == reassembly.TCPDirServerToClient {
 		return
 	}
+	if tcp.PSH && len(tcp.Payload) != 0 { // Packet has contents
+		s.pshPacket = true
+	}
 	if s.firstPacketTime.IsZero() {
 		s.firstPacketTime = ci.Timestamp
-	} else {
-		s.lastPacketTime = ci.Timestamp
 	}
+
+	s.lastPacketTime = ci.Timestamp
 }
 
 func (s *TimeSignature) detected() bool {
 	if s.lastPacketTime.IsZero() {
 		return false
 	}
-	return s.lastPacketTime.Sub(s.firstPacketTime) <= s.threshold
+	return s.pshPacket && s.lastPacketTime.Sub(s.firstPacketTime) <= s.threshold
 }
 
 // Packet Count Signature
 type PacketCountSignature struct {
 	threshold   int
+	pshPacket   bool
 	packetCount int
 }
 
@@ -112,13 +117,16 @@ func newPacketCountSignature(threshold int) *PacketCountSignature {
 	}
 }
 
-func (s *PacketCountSignature) processPacket(dir reassembly.TCPFlowDirection) {
+func (s *PacketCountSignature) processPacket(tcp *layers.TCP, dir reassembly.TCPFlowDirection) {
 	if dir == reassembly.TCPDirServerToClient {
 		return
+	}
+	if tcp.PSH && len(tcp.Payload) != 0 {
+		s.pshPacket = true
 	}
 	s.packetCount += 1
 }
 
 func (s *PacketCountSignature) detected() bool {
-	return s.packetCount <= s.threshold && s.packetCount != 0
+	return s.pshPacket && s.packetCount <= s.threshold && s.packetCount != 0
 }

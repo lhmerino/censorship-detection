@@ -95,44 +95,101 @@ func TestUnitWin(t *testing.T) {
 func TestUnitTime(t *testing.T) {
 	timeNow := time.Now()
 	var tests = [][]struct {
+		tcp      layers.TCP
 		dir      reassembly.TCPFlowDirection
 		ci       gopacket.CaptureInfo
 		detected bool
 	}{
 		{
-			// TCP three-way handshake
-			{detected: false, dir: reassembly.TCPDirClientToServer,
-				ci: gopacket.CaptureInfo{Timestamp: timeNow}},
-			// Ensures only traffic from the client is being processed
-			{detected: false, dir: reassembly.TCPDirServerToClient,
-				ci: gopacket.CaptureInfo{Timestamp: timeNow.Add(100 * time.Millisecond)}},
-			{detected: true, dir: reassembly.TCPDirClientToServer,
-				ci: gopacket.CaptureInfo{Timestamp: timeNow.Add(4 * time.Millisecond)}},
-			// Simulating a censored query
-			{detected: true, dir: reassembly.TCPDirClientToServer,
-				ci: gopacket.CaptureInfo{Timestamp: timeNow.Add(6 * time.Millisecond)}},
-			// Acknowledge the client
-			{detected: true, dir: reassembly.TCPDirServerToClient,
-				ci: gopacket.CaptureInfo{Timestamp: timeNow.Add(10 * time.Millisecond)}},
-			// Server acks the client again
-			{detected: true, dir: reassembly.TCPDirServerToClient,
-				ci: gopacket.CaptureInfo{Timestamp: timeNow.Add(12 * time.Millisecond)}},
-			// Server once again acks the client - nothing from client
-			{detected: true, dir: reassembly.TCPDirServerToClient,
-				ci: gopacket.CaptureInfo{Timestamp: timeNow.Add(14 * time.Millisecond)}},
-			// Received something from the client past threshold, no longer detected
-			{detected: false, dir: reassembly.TCPDirClientToServer,
-				ci: gopacket.CaptureInfo{Timestamp: timeNow.Add(21 * time.Millisecond)}},
+			// SYN (T)
+			{detected: false,
+				tcp: layers.TCP{SYN: true}, dir: reassembly.TCPDirClientToServer,
+				ci: gopacket.CaptureInfo{Timestamp: timeNow},
+			},
+		},
+		{
+			// SYN (T) - SYN/ACK (T+1) - ACK (T+2)
+			// PSH (T+3) - ACK (T+4) - ACK (T+5) - ACK(T+6) - PSH (T+11) - ACK (T+12)
+			{detected: false,
+				tcp: layers.TCP{SYN: true}, dir: reassembly.TCPDirClientToServer,
+				ci: gopacket.CaptureInfo{Timestamp: timeNow},
+			},
+			{detected: false,
+				tcp: layers.TCP{SYN: true, ACK: true}, dir: reassembly.TCPDirServerToClient,
+				ci: gopacket.CaptureInfo{Timestamp: timeNow.Add(1 * time.Millisecond)},
+			},
+			{detected: false,
+				tcp: layers.TCP{ACK: true}, dir: reassembly.TCPDirClientToServer,
+				ci: gopacket.CaptureInfo{Timestamp: timeNow.Add(2 * time.Millisecond)},
+			},
+			{detected: true,
+				tcp: layers.TCP{PSH: true, BaseLayer: layers.BaseLayer{Payload: []byte{1}}},
+				dir: reassembly.TCPDirClientToServer,
+				ci:  gopacket.CaptureInfo{Timestamp: timeNow.Add(3 * time.Millisecond)},
+			},
+			{detected: true,
+				tcp: layers.TCP{ACK: true},
+				dir: reassembly.TCPDirServerToClient,
+				ci:  gopacket.CaptureInfo{Timestamp: timeNow.Add(4 * time.Millisecond)},
+			},
+			{detected: true,
+				tcp: layers.TCP{ACK: true},
+				dir: reassembly.TCPDirServerToClient,
+				ci:  gopacket.CaptureInfo{Timestamp: timeNow.Add(5 * time.Millisecond)},
+			},
+			{detected: true,
+				tcp: layers.TCP{ACK: true},
+				dir: reassembly.TCPDirServerToClient,
+				ci:  gopacket.CaptureInfo{Timestamp: timeNow.Add(6 * time.Millisecond)},
+			},
+			{detected: false,
+				tcp: layers.TCP{PSH: true, BaseLayer: layers.BaseLayer{Payload: []byte{1}}},
+				dir: reassembly.TCPDirClientToServer,
+				ci:  gopacket.CaptureInfo{Timestamp: timeNow.Add(11 * time.Millisecond)},
+			},
+			{detected: false,
+				tcp: layers.TCP{ACK: true},
+				dir: reassembly.TCPDirServerToClient,
+				ci:  gopacket.CaptureInfo{Timestamp: timeNow.Add(12 * time.Millisecond)},
+			},
+		},
+		{
+			// PSH (T) - PSH (T+10) - PSH (T+11) - PSH (T+200) - PSH(T+1000)
+			{detected: true,
+				tcp: layers.TCP{PSH: true, BaseLayer: layers.BaseLayer{Payload: []byte{1}}},
+				dir: reassembly.TCPDirClientToServer,
+				ci:  gopacket.CaptureInfo{Timestamp: timeNow},
+			},
+			{detected: true,
+				tcp: layers.TCP{PSH: true, BaseLayer: layers.BaseLayer{Payload: []byte{1}}},
+				dir: reassembly.TCPDirClientToServer,
+				ci:  gopacket.CaptureInfo{Timestamp: timeNow.Add(10 * time.Millisecond)},
+			},
+			{detected: false,
+				tcp: layers.TCP{PSH: true, BaseLayer: layers.BaseLayer{Payload: []byte{1}}},
+				dir: reassembly.TCPDirClientToServer,
+				ci:  gopacket.CaptureInfo{Timestamp: timeNow.Add(11 * time.Millisecond)},
+			},
+			{detected: false,
+				tcp: layers.TCP{PSH: true, BaseLayer: layers.BaseLayer{Payload: []byte{1}}},
+				dir: reassembly.TCPDirClientToServer,
+				ci:  gopacket.CaptureInfo{Timestamp: timeNow.Add(200 * time.Millisecond)},
+			},
+			{detected: false,
+				tcp: layers.TCP{PSH: true, BaseLayer: layers.BaseLayer{Payload: []byte{1}}},
+				dir: reassembly.TCPDirClientToServer,
+				ci:  gopacket.CaptureInfo{Timestamp: timeNow.Add(1000 * time.Millisecond)},
+			},
 		},
 	}
 
-	for _, packets := range tests {
+	for testN, packets := range tests {
 		signature := newTimeSignature(10)
 
 		for i, packet := range packets {
-			signature.processPacket(packet.ci, packet.dir)
+			signature.processPacket(&packet.tcp, packet.ci, packet.dir)
 			if packet.detected != signature.detected() {
-				t.Errorf("packet %d: got %v, want %v", i, signature.detected(), packet.detected)
+				t.Errorf("Run: %d, packet %d: got %v, want %v", testN+1, i+1, signature.detected(), packet.detected)
 			}
 		}
 	}
@@ -140,36 +197,83 @@ func TestUnitTime(t *testing.T) {
 
 func TestUnitPacketCount(t *testing.T) {
 	var tests = [][]struct {
+		tcp      layers.TCP
 		dir      reassembly.TCPFlowDirection
 		detected bool
 	}{
 		{
-			// Ensures only traffic from the client is being processed
-			{detected: false, dir: reassembly.TCPDirServerToClient},
-			// Client packet
-			{detected: true, dir: reassembly.TCPDirClientToServer},
-			// Server packet
-			{detected: true, dir: reassembly.TCPDirServerToClient},
-			// Client packet
-			{detected: true, dir: reassembly.TCPDirClientToServer},
-			// Server packet
-			{detected: true, dir: reassembly.TCPDirServerToClient},
-			// Another server packet
-			{detected: true, dir: reassembly.TCPDirServerToClient},
-			// Another server packet
-			{detected: true, dir: reassembly.TCPDirServerToClient},
-			// Client packet
-			{detected: false, dir: reassembly.TCPDirClientToServer},
-			// Another server packet
-			{detected: false, dir: reassembly.TCPDirServerToClient},
+			// SYN
+			{detected: false,
+				tcp: layers.TCP{SYN: true}, dir: reassembly.TCPDirClientToServer,
+			},
+		},
+		{
+			// SYN - SYN/ACK - ACK
+			// PSH - ACK - ACK - ACK - PSH - ACK
+			{detected: false,
+				tcp: layers.TCP{SYN: true}, dir: reassembly.TCPDirClientToServer,
+			},
+			{detected: false,
+				tcp: layers.TCP{SYN: true, ACK: true}, dir: reassembly.TCPDirServerToClient,
+			},
+			{detected: false,
+				tcp: layers.TCP{ACK: true}, dir: reassembly.TCPDirClientToServer,
+			},
+			{detected: true,
+				tcp: layers.TCP{PSH: true, BaseLayer: layers.BaseLayer{Payload: []byte{1}}},
+				dir: reassembly.TCPDirClientToServer,
+			},
+			{detected: true,
+				tcp: layers.TCP{ACK: true},
+				dir: reassembly.TCPDirServerToClient,
+			},
+			{detected: true,
+				tcp: layers.TCP{ACK: true},
+				dir: reassembly.TCPDirServerToClient,
+			},
+			{detected: true,
+				tcp: layers.TCP{ACK: true},
+				dir: reassembly.TCPDirServerToClient,
+			},
+			{detected: false,
+				tcp: layers.TCP{PSH: true, BaseLayer: layers.BaseLayer{Payload: []byte{1}}},
+				dir: reassembly.TCPDirClientToServer,
+			},
+			{detected: false,
+				tcp: layers.TCP{ACK: true},
+				dir: reassembly.TCPDirServerToClient,
+			},
+		},
+		{
+			// PSH - PSH - PSH - PSH - PSH
+			{detected: true,
+				tcp: layers.TCP{PSH: true, BaseLayer: layers.BaseLayer{Payload: []byte{1}}},
+				dir: reassembly.TCPDirClientToServer,
+			},
+			{detected: true,
+				tcp: layers.TCP{PSH: true, BaseLayer: layers.BaseLayer{Payload: []byte{1}}},
+				dir: reassembly.TCPDirClientToServer,
+			},
+			{detected: true,
+				tcp: layers.TCP{PSH: true, BaseLayer: layers.BaseLayer{Payload: []byte{1}}},
+				dir: reassembly.TCPDirClientToServer,
+			},
+			{detected: false,
+				tcp: layers.TCP{PSH: true, BaseLayer: layers.BaseLayer{Payload: []byte{1}}},
+				dir: reassembly.TCPDirClientToServer,
+			},
+			{detected: false,
+				tcp: layers.TCP{PSH: true, BaseLayer: layers.BaseLayer{Payload: []byte{1}}},
+				dir: reassembly.TCPDirClientToServer,
+			},
 		},
 	}
 
 	for _, packets := range tests {
-		signature := newPacketCountSignature(2)
+		signature := newPacketCountSignature(3)
 
 		for i, packet := range packets {
-			signature.processPacket(packet.dir)
+			signature.processPacket(&packet.tcp, packet.dir)
 			if packet.detected != signature.detected() {
 				t.Errorf("packet %d: got %v, want %v", i, signature.detected(), packet.detected)
 			}
