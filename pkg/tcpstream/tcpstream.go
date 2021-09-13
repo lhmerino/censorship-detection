@@ -44,6 +44,9 @@ type tcpStream struct {
 	net, transport gopacket.Flow
 	// Whether or not the flow client and server should be reversed
 	reversed bool
+	// Whether or not streams missinginit (syn-syn/ack-ack) should be retained
+	allowMissingInit bool
+	SYN              bool
 
 	// Number of packets sent by the client and server
 	maxPacketCount, clientPacketCount, serverPacketCount int
@@ -98,6 +101,9 @@ func (f *tcpStreamFactory) New(net, transport gopacket.Flow, tcp *layers.TCP, ac
 		reversed:       reversed,
 		maxPacketCount: f.maxPacketCount,
 
+		allowMissingInit: f.allowMissingInit,
+		SYN:              false,
+
 		detectors:    detectors,
 		collector:    f.collectorFactory.NewCollector(net, transport, tcp),
 		streamWriter: f.streamWriter,
@@ -106,6 +112,13 @@ func (f *tcpStreamFactory) New(net, transport gopacket.Flow, tcp *layers.TCP, ac
 
 func (t *tcpStream) Accept(packet gopacket.Packet, tcp *layers.TCP, ci gopacket.CaptureInfo, dir reassembly.TCPFlowDirection,
 	nextSeq reassembly.Sequence, start *bool, ac reassembly.AssemblerContext) bool {
+	if !t.allowMissingInit && t.SYN == false {
+		if tcp.SYN {
+			t.SYN = true
+		} else {
+			return false
+		}
+	}
 
 	if t.reversed {
 		dir = dir.Reverse()
@@ -130,7 +143,9 @@ func (t *tcpStream) Accept(packet gopacket.Packet, tcp *layers.TCP, ci gopacket.
 	for _, det := range t.detectors {
 		det.ProcessPacket(packet, tcp, ci, dir)
 	}
-	t.collector.ProcessPacket(packet, tcp, ci, dir)
+	if t.collector != nil {
+		t.collector.ProcessPacket(packet, tcp, ci, dir)
+	}
 
 	return true
 }

@@ -90,6 +90,10 @@ func TestIntegrationMain(t *testing.T) {
 			t.Fatalf("%v", err)
 		}
 
+		//t.Logf("%s\n", stdoutBuffer.String())
+		//t.Logf("\n\n\n")
+		//t.Log(stderrBuffer.String())
+
 		// Compare output
 		if !bytes.Equal(expectedStderr, actualStderr) {
 			t.Fatalf("stderr does not match for %v", test.name)

@@ -28,8 +28,6 @@ type CollectorConfig struct {
 
 type TCPConfig struct {
 	// Support streams without SYN/SYN+ACK/ACK sequence
-	// Not yet implemented. For an example of its use, see
-	// https://github.com/google/gopacket/blob/master/examples/reassemblydump/main.go#L48
 	AllowMissingInit bool `yaml:"allowmissinginit,omitempty"`
 	MaxPacketCount   int  `yaml:"max_packets"` // Maximum number of packets to accept from each of the client and server
 }
