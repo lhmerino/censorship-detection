@@ -112,7 +112,7 @@ func (f *tcpStreamFactory) New(net, transport gopacket.Flow, tcp *layers.TCP, ac
 
 func (t *tcpStream) Accept(packet gopacket.Packet, tcp *layers.TCP, ci gopacket.CaptureInfo, dir reassembly.TCPFlowDirection,
 	nextSeq reassembly.Sequence, start *bool, ac reassembly.AssemblerContext) bool {
-	if !t.allowMissingInit && t.SYN == false {
+	if !t.allowMissingInit && !t.SYN {
 		if tcp.SYN {
 			t.SYN = true
 		} else {
