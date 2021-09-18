@@ -1,0 +1,33 @@
+INFO Initialized detectors
+INFO Initialized collectors
+INFO Running parser
+INFO Read from pcap: "testdata/full_http_request.pcap"
+DEBUG ::1->::1 55345->8081: New Connection
+DEBUG ::1->::1 55345->8081(client->server): Accept | S:true, A:false, P:false, R:false F:false
+DEBUG ::1->::1 55345->8081(client->server): ReassembledSG | 0 bytes (start:true,end:false,skip:0,saved:0,nb:1,1,overlap:0,0)
+DEBUG ::1->::1 8081->55345(server->client): Accept | S:true, A:true, P:false, R:false F:false
+DEBUG ::1->::1 8081->55345(server->client): ReassembledSG | 0 bytes (start:true,end:false,skip:0,saved:0,nb:1,1,overlap:0,0)
+DEBUG ::1->::1 55345->8081(client->server): Accept | S:false, A:true, P:false, R:false F:false
+DEBUG ::1->::1 8081->55345(server->client): Accept | S:false, A:true, P:false, R:false F:false
+DEBUG ::1->::1 55345->8081(client->server): Accept | S:false, A:true, P:true, R:false F:false
+DEBUG ::1->::1 55345->8081(client->server): ReassembledSG | 607 bytes (start:false,end:false,skip:0,saved:0,nb:1,1,overlap:0,0)
+DEBUG Forced flush: 0 flushed, 0 closed, 5 total
+DEBUG ::1->::1 8081->55345(server->client): Accept | S:false, A:true, P:false, R:false F:false
+DEBUG ::1->::1 8081->55345(server->client): Accept | S:false, A:true, P:true, R:false F:false
+DEBUG ::1->::1 8081->55345(server->client): ReassembledSG | 184 bytes (start:false,end:false,skip:0,saved:0,nb:1,1,overlap:0,0)
+DEBUG ::1->::1 8081->55345(server->client): Accept | S:false, A:true, P:true, R:false F:true
+DEBUG ::1->::1 8081->55345(server->client): ReassembledSG | 469 bytes (start:false,end:true,skip:0,saved:0,nb:1,1,overlap:0,0)
+DEBUG ::1->::1 55345->8081(client->server): Accept | S:false, A:true, P:false, R:false F:false
+DEBUG ::1->::1 55345->8081(client->server): Accept | S:false, A:true, P:false, R:false F:false
+DEBUG Forced flush: 0 flushed, 0 closed, 10 total
+DEBUG ::1->::1 55345->8081(client->server): Accept | S:false, A:true, P:false, R:false F:true
+DEBUG ::1->::1 55345->8081(client->server): ReassembledSG | 0 bytes (start:false,end:true,skip:0,saved:0,nb:1,1,overlap:0,0)
+DEBUG ::1->::1 55345->8081: TCP Stream Reassembly Complete
+DEBUG ::1->::1 8081->55345(server->client): Accept | S:false, A:true, P:false, R:false F:false
+INFO End of PCAP
+DEBUG ::1->::1 55345->8081: Disruption Detected
+DEBUG Final flush: 1 closed, 12 total
+INFO global_packets: 12 tcp, 0 other
+INFO global_streams: 1 total, 1 disrupted
+INFO http_8081_any: 1 total, 1 disrupted
+INFO Stopping metrics server

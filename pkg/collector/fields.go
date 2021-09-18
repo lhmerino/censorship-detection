@@ -340,23 +340,54 @@ func newHostCollector() *hostCollector {
 	return new(hostCollector)
 }
 
-func (p *hostCollector) processPacket(packet gopacket.Packet) {
-	if app := packet.ApplicationLayer(); app != nil {
-		buf := bufio.NewReader(bytes.NewReader(app.Payload()))
-		req, err := http.ReadRequest(buf)
-		if err != nil {
-			return
-		}
-		*p = hostCollector(req.Host)
-	}
-}
-
 func (p *hostCollector) String() string {
 	return string(*p)
 }
 
 func (p *hostCollector) MarshalJSON() ([]byte, error) {
 	return json.Marshal(*p)
+}
+
+func (p *hostCollector) processPacket(packet gopacket.Packet) {
+	app := packet.ApplicationLayer()
+	if app == nil {
+		return
+	}
+	buf := bufio.NewReader(bytes.NewReader(app.Payload()))
+	req, err := http.ReadRequest(buf)
+	if err != nil {
+		return
+	}
+
+	*p = hostCollector(req.Host)
+}
+
+type uriCollector string
+
+func newURICollector() *uriCollector {
+	return new(uriCollector)
+}
+
+func (p *uriCollector) String() string {
+	return string(*p)
+}
+
+func (p *uriCollector) MarshalJSON() ([]byte, error) {
+	return json.Marshal(*p)
+}
+
+func (p *uriCollector) processPacket(packet gopacket.Packet) {
+	app := packet.ApplicationLayer()
+	if app == nil {
+		return
+	}
+	buf := bufio.NewReader(bytes.NewReader(app.Payload()))
+	req, err := http.ReadRequest(buf)
+	if err != nil {
+		return
+	}
+
+	*p = uriCollector(req.RequestURI)
 }
 
 // sniCollector collects the TLS server name extension value

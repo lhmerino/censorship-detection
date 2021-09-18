@@ -38,6 +38,7 @@ func TestIntegrationMain(t *testing.T) {
 		{name: "test4", config: "testdata/test4/config.yml", stderr: "testdata/test4/stderr.log", stdout: "testdata/test4/stdout.log", sort: true},
 		{name: "test5", config: "testdata/test5/config.yml", stderr: "testdata/test5/stderr.log", stdout: "testdata/test5/stdout.log", sort: true},
 		{name: "test6", config: "testdata/test6/config.yml", stderr: "testdata/test6/stderr.log", stdout: "testdata/test6/stdout.log", sort: true},
+		{name: "test7", config: "testdata/test7/config.yml", stderr: "testdata/test7/stderr.log", stdout: "testdata/test7/stdout.log", sort: true},
 	}
 
 	for _, test := range tests {

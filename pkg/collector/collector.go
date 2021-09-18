@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
-
 	"tripwire/pkg/config"
 
 	"github.com/Kkevsterrr/gopacket"
@@ -39,6 +38,7 @@ const (
 	FieldSeqNum
 	FieldSNI
 	FieldHost
+	FieldURI
 	FieldTLSExtensions
 )
 
@@ -54,6 +54,7 @@ var fieldMap = map[string]FieldType{
 	"seqnum":     FieldSeqNum,
 	"sni":        FieldSNI,
 	"host":       FieldHost,
+	"uri":        FieldURI,
 	"extensions": FieldTLSExtensions,
 }
 
@@ -79,6 +80,7 @@ type collector struct {
 	seqnum        *seqnumCollector
 	sni           *sniCollector
 	host          *hostCollector
+	uri           *uriCollector
 	tlsExtensions *tlsExtensionsCollector
 }
 
@@ -125,6 +127,8 @@ func (f *collectorFactory) NewCollector(net, transport gopacket.Flow, tcp *layer
 			c.sni = newSNICollector()
 		case FieldHost:
 			c.host = newHostCollector()
+		case FieldURI:
+			c.uri = newURICollector()
 		case FieldTLSExtensions:
 			c.tlsExtensions = newTLSExtensionsCollector()
 		}
@@ -154,6 +158,9 @@ func (c *collector) ProcessPacket(packet gopacket.Packet, tcp *layers.TCP,
 	}
 	if c.host != nil {
 		c.host.processPacket(packet)
+	}
+	if c.uri != nil {
+		c.uri.processPacket(packet)
 	}
 	if c.sni != nil {
 		c.sni.processPacket(packet)
@@ -187,6 +194,7 @@ func (c *collector) MarshalJSON() ([]byte, error) {
 		Payload    *payloadCollector       `json:"payload,omitempty"`
 		SNI        *sniCollector           `json:"sni,omitempty"`
 		Host       *hostCollector          `json:"host,omitempty"`
+		URI        *uriCollector           `json:"uri,omitempty"`
 		Extensions *tlsExtensionsCollector `json:"extensions,omitempty"`
 	}{
 		IP:         c.ip,
@@ -200,6 +208,7 @@ func (c *collector) MarshalJSON() ([]byte, error) {
 		Payload:    c.payload,
 		SNI:        c.sni,
 		Host:       c.host,
+		URI:        c.uri,
 		Extensions: c.tlsExtensions,
 	})
 }
@@ -238,6 +247,9 @@ func (c *collector) String() string {
 	}
 	if c.host != nil {
 		b.WriteString(fmt.Sprintf("  Host: %s\n", c.host))
+	}
+	if c.uri != nil {
+		b.WriteString(fmt.Sprintf("  URI: %s\n", c.uri))
 	}
 	if c.tlsExtensions != nil {
 		b.WriteString(fmt.Sprintf("  Extensions: %s\n", c.tlsExtensions))
